@@ -1,0 +1,43 @@
+# Python virtual environment
+ml/.venv
+ml/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node.js
+gui/node_modules/
+node_modules/
+
+# Build artifacts
+*.o
+*.so
+lex.yy.c
+parser.tab.c
+parser.tab.h
+parser.output
+idce
+
+# Generated run outputs
+gui_run_*/
+gui_test/
+
+# ML data (large files)
+ml_data/processed/
+ml_data/raw/
+ml_data/*.pt
+!ml_data/dce_model.pt
+
+# Analysis outputs
+analysis_report/
+out_*/
+
+# Temporary runs & scratch
+0.8/
+test_run/
+scratch/
+
+# OS / Editor files
+.DS_Store
+**/.DS_Store
+

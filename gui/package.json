@@ -1,0 +1,16 @@
+{
+    "name": "idce-gui",
+    "version": "1.0.0",
+    "description": "Web GUI for IDCE ML-Assisted Dead Code Elimination",
+    "main": "server.js",
+    "scripts": {
+        "start": "lsof -ti:3000 | xargs kill -9 2>/dev/null; node server.js",
+        "dev": "node server.js"
+    },
+    "dependencies": {
+        "dotenv": "^17.4.2",
+        "express": "^4.18.2",
+        "multer": "^1.4.5-lts.1",
+        "ws": "^8.16.0"
+    }
+}

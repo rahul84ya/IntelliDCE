@@ -1,0 +1,40 @@
+;; Function f (_Z1fi, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int f (int n)
+{
+  int _3;
+
+  <bb 2> :
+  if (n_1(D) == 0)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 4>; [INV]
+
+  <bb 3> :
+  _3 = 0;
+  goto <bb 5>; [INV]
+
+  <bb 4> :
+  _2 = n_1(D) + -1;
+  _3 = f (_2);
+
+  <bb 5> :
+  return _3;
+
+}
+
+;; Function main (main, funcdef_no=1, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int _5;
+
+  <bb 2> :
+  f (3);
+  _5 = 0;
+
+  <bb 3> :
+<L0>:
+  return _5;
+
+}

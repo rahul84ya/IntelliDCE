@@ -1,0 +1,38 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int sum;
+  int i;
+  int x;
+  int y;
+  int _8;
+
+  <bb 2> :
+  sum_1 = 0;
+  i_2 = 0;
+  goto <bb 4>; [INV]
+
+  <bb 3> :
+  x_4 = i_3 * 2;
+  sum_5 = sum_7 + i_3;
+  y_6 = i_3 + 10;
+  i_8 = i_3 + 1;
+
+  <bb 4> :
+  # sum_7 = PHI <sum_1(2), sum_5(3)>
+  # i_3 = PHI <i_2(2), i_8(3)>
+  if (i_3 <= 4)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 5> :
+  std::basic_ostream<char>::operator<< (&cout, sum_7);
+  _8 = 0;
+
+  <bb 6> :
+<L0>:
+  return _8;
+
+}

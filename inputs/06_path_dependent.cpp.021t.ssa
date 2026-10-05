@@ -1,0 +1,70 @@
+
+;; Function path_pruning (_Z12path_pruningi, funcdef_no=0, decl_uid=2762, cgraph_uid=1, symbol_order=0)
+
+int path_pruning (int x)
+{
+  int flag;
+  int D.2771;
+  int _1;
+  int _3;
+  int _5;
+  int _6;
+
+  <bb 2> :
+  if (x_2(D) > 10)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 3> :
+  if (x_2(D) <= 4)
+    goto <bb 4>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 4> :
+  _3 = -1;
+  // predicted unlikely by early return (on trees) predictor.
+  goto <bb 8>; [INV]
+
+  <bb 5> :
+  flag_4 = 0;
+  if (flag_4 != 0)
+    goto <bb 6>; [INV]
+  else
+    goto <bb 7>; [INV]
+
+  <bb 6> :
+  _6 = 42;
+  // predicted unlikely by early return (on trees) predictor.
+  goto <bb 8>; [INV]
+
+  <bb 7> :
+  _5 = x_2(D) * 2;
+
+  <bb 8> :
+  # _1 = PHI <_3(4), _6(6), _5(7)>
+<L7>:
+  return _1;
+
+}
+
+
+
+;; Function main (main, funcdef_no=1, decl_uid=2765, cgraph_uid=2, symbol_order=1)
+
+int main ()
+{
+  int D.2776;
+  int _3;
+
+  <bb 2> :
+  _3 = path_pruning (20);
+
+  <bb 3> :
+<L0>:
+  return _3;
+
+}
+
+

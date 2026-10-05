@@ -1,0 +1,31 @@
+;; Function f (_Z1fi, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int f (int x)
+{
+  int _2;
+
+  <bb 2> :
+  _2 = x_1(D) * 2;
+
+  <bb 3> :
+<L0>:
+  return _2;
+
+}
+
+;; Function main (main, funcdef_no=1, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int val;
+  int _5;
+
+  <bb 2> :
+  val_1 = f (5);
+  _5 = 0;
+
+  <bb 3> :
+<L0>:
+  return _5;
+
+}

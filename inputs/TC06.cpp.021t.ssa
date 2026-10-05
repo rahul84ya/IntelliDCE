@@ -1,0 +1,19 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int x;
+  int y;
+  int _5;
+
+  <bb 2> :
+  x_1 = 10;
+  std::operator<< <std::char_traits<char> > (&cout, "Hello");
+  y_2 = x_1 + 5;
+  _5 = 0;
+
+  <bb 3> :
+<L0>:
+  return _5;
+
+}

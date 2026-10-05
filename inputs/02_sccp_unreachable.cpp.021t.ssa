@@ -1,0 +1,42 @@
+
+;; Function main (main, funcdef_no=1988, decl_uid=49708, cgraph_uid=456, symbol_order=493)
+
+int main ()
+{
+  struct basic_ostream & D.53845;
+  int y;
+  int x;
+  int D.53843;
+  struct basic_ostream & _1;
+  struct basic_ostream & _9;
+  int _12;
+
+  <bb 2> :
+  x_4 = 1;
+  y_5 = 2;
+  if (x_4 == 0)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 4>; [INV]
+
+  <bb 3> :
+  _9 = std::operator<< <std::char_traits<char> > (&cout, "This will be removed");
+  _1 = _9;
+  std::basic_ostream<char>::operator<< (_1, endl);
+  y_11 = 500;
+  goto <bb 5>; [INV]
+
+  <bb 4> :
+  y_6 = 100;
+
+  <bb 5> :
+  # y_2 = PHI <y_11(3), y_6(4)>
+  _12 = y_2;
+
+  <bb 6> :
+<L3>:
+  return _12;
+
+}
+
+

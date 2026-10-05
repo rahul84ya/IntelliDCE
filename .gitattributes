@@ -1,0 +1,7 @@
+*.html linguist-detectable=false
+*.css linguist-detectable=false
+*.sh linguist-language=Shell
+
+dist/* linguist-vendored
+build/* linguist-vendored
+node_modules/* linguist-vendored

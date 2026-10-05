@@ -1,0 +1,59 @@
+
+;; Function test_loops (_Z10test_loopsv, funcdef_no=0, decl_uid=2761, cgraph_uid=1, symbol_order=0)
+
+int test_loops ()
+{
+  int i;
+  int redundant_counter;
+  int sum;
+  int D.2772;
+  int _7;
+
+  <bb 2> :
+  sum_4 = 0;
+  redundant_counter_5 = 0;
+  i_6 = 0;
+  goto <bb 4>; [INV]
+
+  <bb 3> :
+  sum_9 = sum_1 + i_3;
+  redundant_counter_10 = redundant_counter_2 + 1;
+  i_11 = i_3 + 1;
+
+  <bb 4> :
+  # sum_1 = PHI <sum_4(2), sum_9(3)>
+  # redundant_counter_2 = PHI <redundant_counter_5(2), redundant_counter_10(3)>
+  # i_3 = PHI <i_6(2), i_11(3)>
+  if (i_3 <= 99)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 5> :
+  _7 = sum_1;
+
+  <bb 6> :
+<L3>:
+  return _7;
+
+}
+
+
+
+;; Function main (main, funcdef_no=1, decl_uid=2770, cgraph_uid=2, symbol_order=1)
+
+int main ()
+{
+  int D.2774;
+  int _3;
+
+  <bb 2> :
+  _3 = test_loops ();
+
+  <bb 3> :
+<L0>:
+  return _3;
+
+}
+
+

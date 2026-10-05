@@ -1,0 +1,94 @@
+
+;; Function unused_helper (_Z13unused_helperv, funcdef_no=2351, decl_uid=53413, cgraph_uid=527, symbol_order=564)
+
+void unused_helper ()
+{
+  struct basic_ostream & D.57559;
+  struct basic_ostream & _1;
+  struct basic_ostream & _4;
+
+  <bb 2> :
+  _4 = std::operator<< <std::char_traits<char> > (&cout, "Unused function");
+  _1 = _4;
+  std::basic_ostream<char>::operator<< (_1, endl);
+  return;
+
+}
+
+
+
+;; Function f (_Z1fv, funcdef_no=2352, decl_uid=53444, cgraph_uid=528, symbol_order=565)
+
+int f ()
+{
+  int x;
+  int D.57560;
+  int _2;
+
+  <bb 2> :
+  x_1 = 10;
+  _2 = x_1;
+
+  <bb 3> :
+<L0>:
+  return _2;
+
+}
+
+
+
+;; Function main (main, funcdef_no=2353, decl_uid=53447, cgraph_uid=529, symbol_order=566)
+
+int main ()
+{
+  struct basic_ostream & D.57572;
+  struct basic_ostream & D.57571;
+  struct basic_ostream & D.57570;
+  int w;
+  int z;
+  int cond;
+  int b;
+  int a;
+  int D.57568;
+  struct basic_ostream & _2;
+  struct basic_ostream & _3;
+  struct basic_ostream & _10;
+  struct basic_ostream & _13;
+  int _18;
+
+  <bb 2> :
+  f ();
+  a_6 = 100;
+  b_7 = a_6 + 1;
+
+  <bb 3> :
+  cond_8 = 0;
+  if (cond_8 == 0)
+    goto <bb 4>; [INV]
+  else
+    goto <bb 5>; [INV]
+
+  <bb 4> :
+  _13 = std::operator<< <std::char_traits<char> > (&cout, "Same");
+  _2 = _13;
+  std::basic_ostream<char>::operator<< (_2, endl);
+  goto <bb 6>; [INV]
+
+  <bb 5> :
+  _10 = std::operator<< <std::char_traits<char> > (&cout, "Same");
+  _3 = _10;
+  std::basic_ostream<char>::operator<< (_3, endl);
+
+  <bb 6> :
+  z_15 = 5;
+  z_16 = z_15;
+  w_17 = z_16;
+  _18 = 0;
+
+  <bb 7> :
+<L6>:
+  return _18;
+
+}
+
+

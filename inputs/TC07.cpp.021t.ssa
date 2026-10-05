@@ -1,0 +1,19 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int a;
+  int * p;
+  int _5;
+
+  <bb 2> :
+  a_1 = 5;
+  p_2 = &a_1;
+  *p_2 = 20;
+  _5 = 0;
+
+  <bb 3> :
+<L0>:
+  return _5;
+
+}

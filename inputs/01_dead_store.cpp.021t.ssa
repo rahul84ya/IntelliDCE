@@ -1,0 +1,47 @@
+
+;; Function f (_Z1fv, funcdef_no=1988, decl_uid=49708, cgraph_uid=456, symbol_order=493)
+
+int f ()
+{
+  int D.53830;
+  int _1;
+
+  <bb 2> :
+  _1 = 5;
+
+  <bb 3> :
+<L0>:
+  return _1;
+
+}
+
+
+
+;; Function main (main, funcdef_no=1989, decl_uid=49736, cgraph_uid=457, symbol_order=494)
+
+int main ()
+{
+  int x;
+  int D.53835;
+  int _5;
+
+  <bb 2> :
+  x_2 = 10;
+  if (x_2 > 0)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 4>; [INV]
+
+  <bb 3> :
+  std::operator<< <std::char_traits<char> > (&cout, "alive\n");
+
+  <bb 4> :
+  _5 = 0;
+
+  <bb 5> :
+<L3>:
+  return _5;
+
+}
+
+

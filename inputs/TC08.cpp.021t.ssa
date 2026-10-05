@@ -1,0 +1,29 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int x;
+  int _5;
+
+  <bb 2> :
+  x_1 = 0;
+  if (x_1 != 0)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 4>; [INV]
+
+  <bb 3> :
+  std::operator<< <std::char_traits<char> > (&cout, "A");
+  goto <bb 5>; [INV]
+
+  <bb 4> :
+  std::operator<< <std::char_traits<char> > (&cout, "B");
+
+  <bb 5> :
+  _5 = 0;
+
+  <bb 6> :
+<L0>:
+  return _5;
+
+}
