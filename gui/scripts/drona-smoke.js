@@ -69,3 +69,4 @@ main().catch(err => {
   console.error('\n❌ Smoke test failed with exception:', err);
   process.exit(1);
 });
+
