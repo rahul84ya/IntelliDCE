@@ -42,3 +42,6 @@ scratch/
 .DS_Store
 **/.DS_Store
 
+# Runtime logs
+gui/logs/
+

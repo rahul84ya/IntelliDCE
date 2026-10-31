@@ -9,6 +9,10 @@ const os    = require('os');
 const crypto = require('crypto');
 require('dotenv').config();
 
+const drona    = require('./drona');
+const guardian = require('./guardian');
+const llm      = require('./llm');
+
 // ── Paths ──────────────────────────────────────────────────────────────────
 const CORRECTIONS_FILE = path.resolve(__dirname, '..', 'ml_data', 'corrections.jsonl');
 const MODEL_PT         = path.resolve(__dirname, '..', 'ml_data', 'dce_model.pt');
@@ -282,126 +286,115 @@ function parseMlPreds(outDir, threshold = 0.6) {
   } catch { return null; }
 }
 
-function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, originalSource }) {
-  const origLines = (origSsa || '').split('\n').filter(l => l.trim().length > 0).length;
-  const optLines = (optSsa || '').split('\n').filter(l => l.trim().length > 0).length;
-  const liveStmts = (stats && typeof stats.liveStmts === 'number') ? stats.liveStmts : 0;
-  const removedLines = (mlPreds && Array.isArray(mlPreds.dead_items)) ? mlPreds.dead_items.length : 0;
-  const totalStmts = liveStmts + removedLines;
-  const deadPct = totalStmts > 0 ? parseFloat(((removedLines / totalStmts) * 100).toFixed(1)) : 0;
-  
-  // Complexity calculation: ratio of control-flow branch statements to basic blocks
-  const branchMatches = (origSsa || '').match(/\b(if|goto|switch|<bb\s+\d+>)\b/g) || [];
-  const branchCount = branchMatches.length;
-  const blockCount = Math.max(1, stats.blocks || 1);
-  const complexityIndex = Math.min(100, Math.round((branchCount / blockCount) * 18));
-  
-  // ── Vulnerability Pattern Scanner (Module 2: Automata-Based Static Invariant Checker) ──
-  // Mathematically models dangerous code patterns as Regular Expressions & Deterministic Finite Automata (DFA)
-  // Scans line-by-line to extract exact line numbers, code snippets, CWE IDs, and remediation steps.
+// ── Rules suite: 10-12 formal CWE automata patterns ────────────────────────
+const automataRules = [
+  {
+    cwe: 'CWE-78',
+    name: 'OS Command Injection Risk',
+    severity: 'Critical',
+    regex: /\b(system|popen|execl|execvp|execve)\s*\(/i,
+    reason: 'Direct invocation of OS shell primitives passes unvalidated strings to the host command interpreter.',
+    recommendation: 'Replace shell invocations with safe internal APIs, or strictly whitelist and validate arguments.',
+    automata: 'DFA Substring Acceptor: \\b(system|popen|execl|execvp|execve)\\s*\\('
+  },
+  {
+    cwe: 'CWE-120',
+    name: 'Unchecked Buffer Copy / Unbounded String Primitive',
+    severity: 'High',
+    regex: /\b(strcpy|strcat|gets|sprintf)\s*\(|\bscanf\s*\(\s*["'][^"']*\%s/i,
+    reason: 'Unbounded buffer copy operation without destination boundary verification.',
+    recommendation: 'Replace with bounded variants (strncpy, snprintf, or std::string) specifying maximum buffer length.',
+    automata: 'DFA Token Acceptor: \\b(strcpy|strcat|gets|sprintf)\\s*\\('
+  },
+  {
+    cwe: 'CWE-73',
+    name: 'Raw / Dangerous File Deletion Primitive',
+    severity: 'High',
+    regex: /\b(remove|unlink|rmdir)\s*\(|rm\s+-rf/i,
+    reason: 'Unchecked filesystem mutation or deletion call without canonical path verification.',
+    recommendation: 'Canonicalize paths via realpath() and enforce strict permission sandboxing before removal.',
+    automata: 'DFA Pattern: \\b(remove|unlink|rmdir)\\s*\\('
+  },
+  {
+    cwe: 'CWE-823',
+    name: 'Unchecked Pointer Arithmetic / Raw Memory Offset',
+    severity: 'High',
+    regex: /(?:\*\s*\(\s*[a-zA-Z0-9_]+\s*[\+\-]\s*[a-zA-Z0-9_]+\s*\)|\b[a-zA-Z0-9_]+\s*\[\s*[a-zA-Z0-9_]+\s*[\+\-]\s*\d+\s*\]|\bptr\s*[\+\-]=)/i,
+    reason: 'Manual pointer or index offsetting without bounds checking permits out-of-bounds memory accesses.',
+    recommendation: 'Use checked collections (std::vector::at, std::span) or validate upper bounds before offset calculation.',
+    automata: 'CFG Context Matching: Raw Pointer Arithmetic Expression'
+  },
+  {
+    cwe: 'CWE-798',
+    name: 'Hardcoded Sensitive Secret / Cleartext Credential',
+    severity: 'Critical',
+    regex: /\b(password|secret|api_key|token|private_key)\s*=\s*["'][^"']+["']/i,
+    reason: 'Authentication secret or cryptographic key stored as cleartext literal in source code.',
+    recommendation: 'Extract secrets into external environment variables or dedicated secret management vaults.',
+    automata: 'DFA Token Matcher: (secret|token|password)\\s*=\\s*literal'
+  },
+  {
+    cwe: 'CWE-570',
+    name: 'Statically Invariant Control Gate (Always False)',
+    severity: 'High',
+    regex: /\bif\s*\(\s*(0\s*==\s*1|1\s*==\s*0|0\s*!=\s*0|1\s*!=\s*1|\w+\s*==\s*\w+\s*&&\s*0|0)\s*\)/i,
+    reason: 'Branch conditional is mathematically locked to false, permanently bypassing nested logic.',
+    recommendation: 'Verify if guard expression was improperly refactored or left as a stub debugging condition.',
+    automata: 'CFG State Transition Pruning: Transition \\delta(q_branch, 0) is null'
+  },
+  {
+    cwe: 'CWE-252',
+    name: 'Unchecked Allocation & Omitted Null-Guard',
+    severity: 'Medium',
+    regex: /\b(malloc|calloc|realloc)\s*\(/i,
+    filter: (line, full) => !/\bif\s*\(\s*\w+\s*==\s*(NULL|nullptr|0)\s*\)/i.test(full),
+    reason: 'Dynamic memory allocation executed without validating against null pointer before dereference.',
+    recommendation: 'Wrap allocations in formal null guards before invoking operations on the pointer.',
+    automata: 'Dataflow Liveness: Allocation State without subsequent Null-Check Transition'
+  },
+  {
+    cwe: 'CWE-338',
+    name: 'Cryptographically Weak Pseudo-Random Number Generator',
+    severity: 'Medium',
+    regex: /\b(rand|random|srand)\s*\(/i,
+    reason: 'Standard C pseudo-random generator (rand) is linear congruential and predictable.',
+    recommendation: 'Use cryptographically secure PRNG primitives (e.g. std::random_device, /dev/urandom).',
+    automata: 'DFA Lexical Matcher: \\b(rand|random|srand)\\s*\\('
+  },
+  {
+    cwe: 'CWE-134',
+    name: 'Uncontrolled Format String Flaw',
+    severity: 'High',
+    regex: /\b(printf|fprintf|vprintf)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/i,
+    reason: 'Variable passed directly as format specifier permits memory inspection or corruption via format tokens.',
+    recommendation: 'Always specify an explicit format string literal: printf("%s", var);',
+    automata: 'CFG Argument Arity: printf() missing initial string literal token'
+  },
+  {
+    cwe: 'CWE-415',
+    name: 'Double Free / Dangling Pointer Hazard',
+    severity: 'High',
+    regex: /\bfree\s*\(\s*([a-zA-Z0-9_]+)\s*\)/i,
+    filter: (line, full) => !/=\s*(NULL|nullptr|0)\s*;/i.test(full),
+    reason: 'Deallocating dynamic pointer without nullification leaves memory handle vulnerable to double free.',
+    recommendation: 'Set pointer to nullptr immediately after invoking free(ptr);',
+    automata: 'Memory State Machine: State Freed without transition to Nullified'
+  }
+];
+
+/**
+ * scanSourceText(sourceText, contextText) — Reusable vulnerability scanner
+ * Evaluates source code line-by-line using automataRules.
+ */
+function scanSourceText(sourceText, contextText) {
+  if (!sourceText || typeof sourceText !== 'string') {
+    return { findings: [], rating: 'clean' };
+  }
+  const full = contextText || sourceText;
+  const sourceLines = sourceText.split('\n');
   const vulnerabilities = [];
-  const fullText = (originalSource || '') + '\n' + (origSsa || '');
-  const scanSource = (originalSource && originalSource.trim().length > 0) ? originalSource : (origSsa || '');
-  const sourceLines = scanSource.split('\n');
-
-  // Rules suite: 10-12 formal CWE automata patterns
-  const automataRules = [
-    {
-      cwe: 'CWE-78',
-      name: 'OS Command Injection Risk',
-      severity: 'Critical',
-      regex: /\b(system|popen|execl|execvp|execve)\s*\(/i,
-      reason: 'Direct invocation of OS shell primitives passes unvalidated strings to the host command interpreter.',
-      recommendation: 'Replace shell invocations with safe internal APIs, or strictly whitelist and validate arguments.',
-      automata: 'DFA Substring Acceptor: \\b(system|popen|execl|execvp|execve)\\s*\\('
-    },
-    {
-      cwe: 'CWE-120',
-      name: 'Unchecked Buffer Copy / Unbounded String Primitive',
-      severity: 'High',
-      regex: /\b(strcpy|strcat|gets|sprintf)\s*\(|\bscanf\s*\(\s*["'][^"']*\%s/i,
-      reason: 'Unbounded buffer copy operation without destination boundary verification.',
-      recommendation: 'Replace with bounded variants (strncpy, snprintf, or std::string) specifying maximum buffer length.',
-      automata: 'DFA Token Acceptor: \\b(strcpy|strcat|gets|sprintf)\\s*\\('
-    },
-    {
-      cwe: 'CWE-73',
-      name: 'Raw / Dangerous File Deletion Primitive',
-      severity: 'High',
-      regex: /\b(remove|unlink|rmdir)\s*\(|rm\s+-rf/i,
-      reason: 'Unchecked filesystem mutation or deletion call without canonical path verification.',
-      recommendation: 'Canonicalize paths via realpath() and enforce strict permission sandboxing before removal.',
-      automata: 'DFA Pattern: \\b(remove|unlink|rmdir)\\s*\\('
-    },
-    {
-      cwe: 'CWE-823',
-      name: 'Unchecked Pointer Arithmetic / Raw Memory Offset',
-      severity: 'High',
-      regex: /(?:\*\s*\(\s*[a-zA-Z0-9_]+\s*[\+\-]\s*[a-zA-Z0-9_]+\s*\)|\b[a-zA-Z0-9_]+\s*\[\s*[a-zA-Z0-9_]+\s*[\+\-]\s*\d+\s*\]|\bptr\s*[\+\-]=)/i,
-      reason: 'Manual pointer or index offsetting without bounds checking permits out-of-bounds memory accesses.',
-      recommendation: 'Use checked collections (std::vector::at, std::span) or validate upper bounds before offset calculation.',
-      automata: 'CFG Context Matching: Raw Pointer Arithmetic Expression'
-    },
-    {
-      cwe: 'CWE-798',
-      name: 'Hardcoded Sensitive Secret / Cleartext Credential',
-      severity: 'Critical',
-      regex: /\b(password|secret|api_key|token|private_key)\s*=\s*["'][^"']+["']/i,
-      reason: 'Authentication secret or cryptographic key stored as cleartext literal in source code.',
-      recommendation: 'Extract secrets into external environment variables or dedicated secret management vaults.',
-      automata: 'DFA Token Matcher: (secret|token|password)\\s*=\\s*literal'
-    },
-    {
-      cwe: 'CWE-570',
-      name: 'Statically Invariant Control Gate (Always False)',
-      severity: 'High',
-      regex: /\bif\s*\(\s*(0\s*==\s*1|1\s*==\s*0|0\s*!=\s*0|1\s*!=\s*1|\w+\s*==\s*\w+\s*&&\s*0|0)\s*\)/i,
-      reason: 'Branch conditional is mathematically locked to false, permanently bypassing nested logic.',
-      recommendation: 'Verify if guard expression was improperly refactored or left as a stub debugging condition.',
-      automata: 'CFG State Transition Pruning: Transition \\delta(q_branch, 0) is null'
-    },
-    {
-      cwe: 'CWE-252',
-      name: 'Unchecked Allocation & Omitted Null-Guard',
-      severity: 'Medium',
-      regex: /\b(malloc|calloc|realloc)\s*\(/i,
-      filter: (line, full) => !/\bif\s*\(\s*\w+\s*==\s*(NULL|nullptr|0)\s*\)/i.test(full),
-      reason: 'Dynamic memory allocation executed without validating against null pointer before dereference.',
-      recommendation: 'Wrap allocations in formal null guards before invoking operations on the pointer.',
-      automata: 'Dataflow Liveness: Allocation State without subsequent Null-Check Transition'
-    },
-    {
-      cwe: 'CWE-338',
-      name: 'Cryptographically Weak Pseudo-Random Number Generator',
-      severity: 'Medium',
-      regex: /\b(rand|random|srand)\s*\(/i,
-      reason: 'Standard C pseudo-random generator (rand) is linear congruential and predictable.',
-      recommendation: 'Use cryptographically secure PRNG primitives (e.g. std::random_device, /dev/urandom).',
-      automata: 'DFA Lexical Matcher: \\b(rand|random|srand)\\s*\\('
-    },
-    {
-      cwe: 'CWE-134',
-      name: 'Uncontrolled Format String Flaw',
-      severity: 'High',
-      regex: /\b(printf|fprintf|vprintf)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/i,
-      reason: 'Variable passed directly as format specifier permits memory inspection or corruption via format tokens.',
-      recommendation: 'Always specify an explicit format string literal: printf("%s", var);',
-      automata: 'CFG Argument Arity: printf() missing initial string literal token'
-    },
-    {
-      cwe: 'CWE-415',
-      name: 'Double Free / Dangling Pointer Hazard',
-      severity: 'High',
-      regex: /\bfree\s*\(\s*([a-zA-Z0-9_]+)\s*\)/i,
-      filter: (line, full) => !/=\s*(NULL|nullptr|0)\s*;/i.test(full),
-      reason: 'Deallocating dynamic pointer without nullification leaves memory handle vulnerable to double free.',
-      recommendation: 'Set pointer to nullptr immediately after invoking free(ptr);',
-      automata: 'Memory State Machine: State Freed without transition to Nullified'
-    }
-  ];
-
-  // Run line-by-line automata evaluation
   const seenFindings = new Set();
+
   sourceLines.forEach((rawLine, idx) => {
     const line = rawLine.trim();
     if (!line || line.startsWith('//') || line.startsWith('/*')) return;
@@ -409,7 +402,7 @@ function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, orig
 
     for (const rule of automataRules) {
       if (rule.regex.test(line)) {
-        if (rule.filter && !rule.filter(line, fullText)) continue;
+        if (rule.filter && !rule.filter(line, full)) continue;
         const key = `${rule.cwe}:${lineNum}`;
         if (seenFindings.has(key)) continue;
         seenFindings.add(key);
@@ -428,6 +421,42 @@ function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, orig
       }
     }
   });
+
+  const rating = vulnerabilities.some(v => v.severity === 'Critical')
+    ? 'vulnerable'
+    : vulnerabilities.length > 0
+    ? 'at_risk'
+    : 'clean';
+
+  return { findings: vulnerabilities, rating };
+}
+
+// Wire the scanner into DRONA for AI suggested code checks
+drona.setScanSourceFn(scanSourceText);
+
+function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, originalSource }) {
+  const origLines = (origSsa || '').split('\n').filter(l => l.trim().length > 0).length;
+  const optLines = (optSsa || '').split('\n').filter(l => l.trim().length > 0).length;
+  const liveStmts = (stats && typeof stats.liveStmts === 'number') ? stats.liveStmts : 0;
+  const removedLines = (mlPreds && Array.isArray(mlPreds.dead_items)) ? mlPreds.dead_items.length : 0;
+  const totalStmts = liveStmts + removedLines;
+  const deadPct = totalStmts > 0 ? parseFloat(((removedLines / totalStmts) * 100).toFixed(1)) : 0;
+  
+  // Complexity calculation: ratio of control-flow branch statements to basic blocks
+  const branchMatches = (origSsa || '').match(/\b(if|goto|switch|<bb\s+\d+>)\b/g) || [];
+  const branchCount = branchMatches.length;
+  const blockCount = Math.max(1, stats.blocks || 1);
+  const complexityIndex = Math.min(100, Math.round((branchCount / blockCount) * 18));
+  
+  // ── Vulnerability Pattern Scanner (Module 2: Automata-Based Static Invariant Checker) ──
+  // Mathematically models dangerous code patterns as Regular Expressions & Deterministic Finite Automata (DFA)
+  // Scans line-by-line to extract exact line numbers, code snippets, CWE IDs, and remediation steps.
+  const fullText = (originalSource || '') + '\n' + (origSsa || '');
+  const scanSource = (originalSource && originalSource.trim().length > 0) ? originalSource : (origSsa || '');
+  const sourceLines = scanSource.split('\n');
+
+  const baseScan = scanSourceText(scanSource, fullText);
+  const vulnerabilities = [...baseScan.findings];
 
   // Cross-pass invariant check: CWE-561 Dead Store to Sensitive Security Credential
   if (/\b(password|token|secret|key|auth|admin|sanitized|privilege|credential|session)\b/i.test(fullText) && 
@@ -1016,8 +1045,43 @@ app.post('/api/explain', express.json(), async (req, res) => {
   });
 });
 
+// ── DRONA & Guardian Endpoints ─────────────────────────────────────────────
+// POST /api/drona/chat { sessionId, message, analysisData }
+app.post('/api/drona/chat', express.json(), async (req, res) => {
+  try {
+    const { sessionId, message, analysisData } = req.body || {};
+    const result = await drona.handleMessage({ sessionId, message, analysisData });
+    res.json(result);
+  } catch (err) {
+    console.error('[DRONA] Chat error:', err);
+    res.status(500).json({ error: 'Internal server error processing DRONA request.' });
+  }
+});
+
+// GET /api/drona/health
+app.get('/api/drona/health', async (_req, res) => {
+  try {
+    const status = await llm.health();
+    res.json(status);
+  } catch (err) {
+    res.status(500).json({ online: false, error: err.message });
+  }
+});
+
+// GET /api/guardian/log
+app.get('/api/guardian/log', (_req, res) => {
+  res.json(guardian.getRecentLogs(50));
+});
+
+// POST /api/guardian/check { text, context }
+app.post('/api/guardian/check', express.json(), (req, res) => {
+  const { text, context } = req.body || {};
+  res.json(guardian.guard(text, context || 'user_prompt'));
+});
+
 // ── Start ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`IDCE GUI running at http://localhost:${PORT}`);
+  llm.warmUp().catch(() => {});
 });
