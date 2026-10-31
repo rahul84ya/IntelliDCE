@@ -54,10 +54,23 @@ std::set<std::string> extractRHS(const std::string& text);
 std::string sanitizeVar(std::string var);
 
 #include <map>
-void applyIntelligentDCE(ProgramIR& prog, const std::map<int, std::string>& dead_reasons);
+void applyIntelligentDCE(ProgramIR& prog, const std::map<int, std::string>& dead_reasons, const std::map<int, std::pair<double, std::string>>& dead_meta = {});
 
 void validate(const FunctionIR& func);
 void repair_ssa_uses(FunctionIR& func, const std::string& dead_var, const std::string& replacement = "undef");
 void fix_cfg_and_phis(FunctionIR& func, const std::set<int>& dead_blocks);
+
+struct RemovedStatement {
+    int id;
+    std::string text;
+    std::string pass;
+    std::string reason;
+    double confidence;
+    std::string source;
+};
+
+extern std::vector<RemovedStatement> global_removed_statements;
+void record_removed_statement(int id, const std::string& text, const std::string& pass, const std::string& reason, double conf = 1.0, const std::string& src = "");
+void export_removed_statements_json(const std::string& filepath);
 
 #endif

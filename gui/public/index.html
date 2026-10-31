@@ -489,10 +489,11 @@
               </div>
               <div class="flex flex-col sm:flex-row items-end gap-2 shrink-0">
                 <div class="text-right">
-                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Security Posture</p>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Security Rating</p>
                   <span id="health-security-badge" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px]">verified_user</span> SECURE
+                    <span class="material-symbols-outlined text-[15px]">verified_user</span> EXCELLENT
                   </span>
+                  <p class="text-[9px] font-mono text-slate-400 mt-1">Thresholds: Exc ≥85 · Good 60-84 · Poor &lt;60</p>
                 </div>
               </div>
             </div>
@@ -543,6 +544,15 @@
               </div>
               <span id="vuln-count-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">0 Issues</span>
             </div>
+            <!-- Explainable Scoring Thresholds -->
+            <div class="mb-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex flex-wrap items-center justify-between gap-1.5 font-mono">
+              <span class="font-bold text-slate-700">Rating Thresholds:</span>
+              <span class="text-emerald-700 font-bold">Excellent ≥ 85</span>
+              <span class="text-slate-300">•</span>
+              <span class="text-blue-700 font-bold">Good 60–84</span>
+              <span class="text-slate-300">•</span>
+              <span class="text-rose-700 font-bold">Poor &lt; 60 (or 1+ Critical)</span>
+            </div>
             <div id="vulnerability-list" class="space-y-2">
               <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex items-center gap-3">
                 <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
@@ -569,16 +579,18 @@
               <p id="stat-removed" class="text-3xl font-mono text-red-400">—</p>
             </div>
           </div>
-          <!-- ML Results Panel (shown after ML-guided analysis) -->
+          <!-- Dead Code Audit Section (Eliminated Statements) -->
           <div id="ml-results-panel" class="hidden mt-4">
-            <!-- Confidence summary bar -->
+            <!-- Audit card -->
             <div class="p-4 rounded-xl bg-surface border border-border-col mb-3">
               <div class="flex items-center justify-between mb-3">
-                <p class="text-xs font-bold uppercase tracking-widest text-slate-500">🧠 GNN Dead Code Detections</p>
+                <p id="dce-detections-title" class="text-xs font-bold uppercase tracking-widest text-slate-700 flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sm text-primary">fact_check</span> Dead Code Audit: Eliminated Statements
+                </p>
                 <span id="ml-model-badge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-violet-100 text-violet-700 border border-violet-200">hybrid-v2</span>
               </div>
-              <div id="ml-dead-list" class="space-y-2 max-h-64 overflow-y-auto scr">
-                <p class="text-xs text-slate-500 italic">No ML items.</p>
+              <div id="ml-dead-list" class="space-y-2.5 max-h-80 overflow-y-auto scr">
+                <p class="text-xs text-slate-500 italic">No eliminated items.</p>
               </div>
             </div>
             <!-- Uncertainty / deferred nodes -->
@@ -883,10 +895,11 @@ int main() {
               </div>
               <div class="flex flex-col sm:flex-row items-end gap-2 shrink-0">
                 <div class="text-right">
-                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Security Posture</p>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Security Rating</p>
                   <span id="health-panel-security-badge" class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[15px]">verified_user</span> SECURE
+                    <span class="material-symbols-outlined text-[15px]">verified_user</span> EXCELLENT
                   </span>
+                  <p class="text-[9px] font-mono text-slate-400 mt-1">Thresholds: Exc ≥85 · Good 60-84 · Poor &lt;60</p>
                 </div>
               </div>
             </div>
@@ -925,6 +938,18 @@ int main() {
               </div>
               <span id="health-panel-vuln-count-badge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">0 Issues Flagged</span>
             </div>
+            <!-- Explainable Scoring Thresholds Breakdown -->
+            <div class="mb-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 font-mono">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-slate-800">Scoring Thresholds:</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">Excellent: ≥ 85 pts</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-200">Good: 60 – 84 pts</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-200">Poor: &lt; 60 pts / 1+ Critical</span>
+              </div>
+              <div class="text-[11px] text-slate-500">
+                Formula: 100 - (Crit×35 + High×20 + Med×10 + Low×5)
+              </div>
+            </div>
             <div id="health-panel-vulnerability-list" class="space-y-3">
               <div class="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex items-center gap-3">
                 <span class="material-symbols-outlined text-emerald-600 text-2xl shrink-0">check_circle</span>
@@ -933,6 +958,21 @@ int main() {
                   <p class="text-[11px] text-emerald-700 mt-0.5">All authorization gates, sensitive credential buffers, and dangerous library primitives verified live or safe.</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Dead Code Audit Section: Eliminated Statements -->
+          <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600 text-lg">fact_check</span>
+                <h4 class="text-sm font-bold uppercase tracking-wider text-slate-900">Dead Code Audit: Eliminated Statements</h4>
+              </div>
+              <span id="health-panel-audit-badge" class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold border border-slate-200">0 Statements</span>
+            </div>
+            <p class="text-xs text-slate-500 mb-3">Complete inventory of statements removed during this pass, including original code snippet, eliminating pass, and safety rationale.</p>
+            <div id="health-panel-audit-list" class="space-y-2.5 max-h-80 overflow-y-auto scr">
+              <p class="text-xs text-slate-500 italic">No statements eliminated in this run.</p>
             </div>
           </div>
 
@@ -1285,10 +1325,37 @@ int main() {
     }
     cout << a;
     return 0;
+}`,
+  TC_SEC: `#include <iostream>
+#include <cstdlib>
+#include <cstring>
+using namespace std;
+
+int main() {
+    char token[32] = "secret_api_key_99";
+    char buffer[16];
+    
+    // Unchecked buffer copy - CWE-120
+    strcpy(buffer, "excessively_long_payload_string");
+    
+    // Invariant false control gate - CWE-570
+    if (0 == 1) {
+        int admin_override = 1;
+    }
+    
+    // Direct command execution - CWE-78
+    system("rm -rf /tmp/cache");
+    
+    // Dead store to sensitive credential - CWE-561
+    memset(token, 0, 32);
+    
+    cout << "Security audit demo completed" << endl;
+    return 0;
 }`
 };
 
 function normalizeTcLabel(tc) {
+  if (String(tc ?? '').includes('SEC')) return 'TC_SEC';
   const digits = String(tc ?? '').replace(/\D/g, '');
   const num = Math.max(1, Math.min(99, parseInt(digits || '1', 10)));
   return `TC${String(num).padStart(2, '0')}`;
@@ -1494,6 +1561,18 @@ function useEditorCode() {
     document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('bg-primary/10','text-primary','border-primary/30'));
     showToast('Using code from editor');
 }
+
+document.getElementById('ssa-editor')?.addEventListener('input', () => {
+    selectedSample = null;
+    selectedFile = null;
+    editorCodeInUse = true;
+    const fn = document.getElementById('file-name');
+    if (fn) fn.textContent = "Editor Content (edited)";
+    document.getElementById('file-badge')?.classList.remove('hidden');
+    const srcIcon = document.getElementById('source-icon');
+    if (srcIcon) srcIcon.textContent = 'edit_document';
+    document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('bg-primary/10','text-primary','border-primary/30'));
+});
 
 function setFile(f) {
   selectedFile = f;
@@ -1803,7 +1882,7 @@ function populateExplainerSelect(deadItems) {
       id: d.id,
       reason: d.reason || 'Eliminated dead code',
       confidence: d.confidence ?? 0.85,
-      code: d.code || ''
+      code: d.text || d.code || ''
     }));
   } else {
     // Attempt extraction from compare-orig / compare-opt diff
@@ -1888,6 +1967,23 @@ let currentHealthData = null;
 
 function renderHealthAndSecurity(health, stats) {
   if (!health) return;
+
+  // Single source of truth: compute dead code ratio directly from the same displayed numbers
+  const liveCount = (stats && typeof stats.liveStmts === 'number') ? stats.liveStmts : (parseInt(document.getElementById('stat-stmts')?.textContent) || 0);
+  const removedCount = (typeof currentRemoved === 'number') ? currentRemoved : (parseInt(document.getElementById('stat-removed')?.textContent) || 0);
+  const totalStmts = liveCount + removedCount;
+  const synchronizedDeadPct = totalStmts > 0 ? parseFloat(((removedCount / totalStmts) * 100).toFixed(1)) : 0;
+  health.deadPct = synchronizedDeadPct;
+  health.removedLines = removedCount;
+
+  // Keep vitality score synchronized with the single-source dead code percentage
+  let syncedScore = 100;
+  syncedScore -= Math.min(30, Math.round(synchronizedDeadPct * 0.75));
+  syncedScore -= Math.min(35, (health.vulnerabilities || []).length * 12);
+  if (health.complexityIndex > 60) syncedScore -= 10;
+  else if (health.complexityIndex > 40) syncedScore -= 5;
+  health.score = Math.max(25, Math.min(98, syncedScore));
+
   currentHealthData = { health, stats };
   
   // Dashboard & Dedicated Panel Elements synchronization
@@ -1917,12 +2013,15 @@ function renderHealthAndSecurity(health, stats) {
     }
     
     if (securityBadge) {
-      securityBadge.innerHTML = `<span class="material-symbols-outlined text-[15px]">${health.securityStatus === 'SECURE' ? 'verified_user' : 'warning'}</span> ${health.securityStatus}`;
+      const rating = health.securityRating || (health.securityStatus === 'SECURE' ? 'Excellent' : health.securityStatus === 'AT RISK' ? 'Good' : 'Poor');
+      const icon = rating.toLowerCase() === 'excellent' ? 'verified_user' : rating.toLowerCase() === 'good' ? 'shield' : 'warning';
+      securityBadge.innerHTML = `<span class="material-symbols-outlined text-[15px]">${icon}</span> ${rating.toUpperCase()}`;
       securityBadge.className = `px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border flex items-center gap-1.5 ${health.securityBadge}`;
     }
     
     if (summaryText) {
-      summaryText.textContent = `Vitality Score ${health.score}/100 with ${health.deadPct}% dead instruction density. ${health.vulnerabilities.length > 0 ? health.vulnerabilities.length + ' security pattern warning(s) flagged.' : 'Zero security invariants violated.'}`;
+      const rating = health.securityRating || 'Excellent';
+      summaryText.textContent = `Vitality Score ${health.score}/100 with ${health.deadPct}% dead instruction density. Security Rating: ${rating} (${health.vulnerabilities.length > 0 ? health.vulnerabilities.length + ' finding(s) detected' : '0 risk patterns'}).`;
     }
 
     const deadPctEl = document.getElementById(ids.dead);
@@ -1961,16 +2060,19 @@ function renderHealthAndSecurity(health, stats) {
       } else {
         vList.innerHTML = health.vulnerabilities.map(v => `
           <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div class="space-y-1">
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-rose-100 text-rose-800 border border-rose-200">${v.cwe}</span>
+            <div class="space-y-1.5 flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-slate-200 text-slate-800 border border-slate-300">${escHtml(v.cwe)}</span>
                 <span class="text-xs font-bold text-slate-800">${escHtml(v.name)}</span>
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${v.severity === 'Critical' ? 'bg-red-500 text-white' : 'bg-amber-100 text-amber-800'}">${v.severity}</span>
+                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${v.severity === 'Critical' ? 'bg-red-500 text-white' : v.severity === 'High' ? 'bg-orange-500 text-white' : v.severity === 'Medium' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700'}">${v.severity}</span>
+                ${v.line ? `<span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200">Line ${v.line}</span>` : ''}
               </div>
-              <p class="text-xs text-slate-600">${escHtml(v.description)}</p>
-              <p class="text-[11px] text-slate-500 font-mono"><strong class="text-slate-700">Fix:</strong> ${escHtml(v.recommendation)}</p>
+              ${v.codeSnippet ? `<pre class="text-[11px] font-mono bg-slate-900 text-amber-300 px-2.5 py-1.5 rounded-lg overflow-x-auto my-1 border border-slate-800"><code>${escHtml(v.codeSnippet)}</code></pre>` : ''}
+              <p class="text-xs text-slate-700"><strong class="text-slate-900">Reason:</strong> ${escHtml(v.reason || v.description)}</p>
+              ${v.automata ? `<p class="text-[10px] text-slate-500 font-mono"><strong class="text-slate-700">TOA Automata:</strong> ${escHtml(v.automata)}</p>` : ''}
+              <p class="text-[11px] text-emerald-700 font-mono"><strong class="text-slate-700">Remediation:</strong> ${escHtml(v.recommendation)}</p>
             </div>
-            <button onclick="inspectVulnerability('${v.cwe}', \`${escHtml(v.name)}\`, \`${escHtml(v.description)}\`)" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[11px] font-bold flex items-center gap-1 transition-colors">
+            <button onclick="inspectVulnerability('${v.cwe}', \`${escHtml(v.name)}\`, \`${escHtml(v.reason || v.description)}\`)" class="shrink-0 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer">
               <span class="material-symbols-outlined text-sm">psychology</span> AI Triage
             </button>
           </div>
@@ -1991,7 +2093,9 @@ function downloadHealthAudit() {
     evaluationFeatures: ["Module 1: Code Health Score", "Module 2: Vulnerability Scanner", "Module 3: Agent Triage", "Module 4: Explainer"],
     score: currentHealthData.health.score,
     grade: currentHealthData.health.grade,
-    securityPosture: currentHealthData.health.securityStatus,
+    securityRating: currentHealthData.health.securityRating || currentHealthData.health.securityStatus,
+    securityScore: currentHealthData.health.securityScore,
+    securityThresholds: currentHealthData.health.securityThresholds,
     metrics: {
       deadCodePercentage: currentHealthData.health.deadPct + "%",
       complexityIndex: currentHealthData.health.complexityIndex,
@@ -2196,8 +2300,12 @@ function confidenceColor(conf) {
 
 function sourceIcon(src) {
   if (src === 'gnn')       return '🧠';
+  if (src === 'dse' || src === 'dse-pass') return '📦';
+  if (src === 'sccp' || src === 'sccp-folding') return '🧮';
+  if (src === 'cfg-prune' || src === 'cfg-pruning') return '✂️';
+  if (src === 'callgraph' || src === 'callgraph-dce') return '🔗';
   if (src === 'heuristic') return '📐';
-  return '⚠️';
+  return '⚙️';
 }
 
 function renderMlResults(mlPreds, runId) {
@@ -2205,40 +2313,74 @@ function renderMlResults(mlPreds, runId) {
   currentMlPreds = mlPreds;
   currentRunId   = runId;
 
-  // Show the ML panel
-  document.getElementById('ml-results-panel').classList.remove('hidden');
-  document.getElementById('ml-model-badge').textContent = mlPreds.model_version || 'hybrid-v2';
+  const mode = document.querySelector('input[name="mode"]:checked')?.value || 'classical';
+  const isClassical = (mlPreds.model_version === 'classical-dce' || mlPreds.model_version === 'classical-passes' || mode === 'classical');
+  const deadCount = (mlPreds.dead_items || []).length;
 
-  // Render dead items list
-  const list = document.getElementById('ml-dead-list');
-  if (!mlPreds.dead_items || !mlPreds.dead_items.length) {
-    list.innerHTML = '<p class="text-xs text-slate-500 italic">No dead items detected by ML pass.</p>';
-  } else {
-    list.innerHTML = mlPreds.dead_items.map((item, idx) => {
-      const conf      = (item.confidence ?? 1.0);
-      const confPct   = (conf * 100).toFixed(1);
-      const confCls   = confidenceColor(conf);
-      const src       = item.source ?? 'gnn';
-      const icon      = sourceIcon(src);
-      const influencers = (item.top_influencers || []).join(', ');
-      return `
-        <div class="flex items-start gap-3 p-2 rounded-lg bg-white border border-border-col group" id="ml-item-${item.id}">
-          <div class="shrink-0 text-base">${icon}</div>
-          <div class="flex-1 min-w-0">
-            <p class="text-[11px] font-mono text-slate-800 truncate" title="ID ${item.id}">[${item.id}] ${escHtml(item.reason || '')}</p>
-            <div class="flex items-center gap-2 mt-1">
-              <div class="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden" style="max-width:80px">
-                <div class="h-full rounded-full bg-current transition-all ${confCls}" style="width:${confPct}%"></div>
+  // Show the detection panel and synchronize title/badge with actual pass mode
+  document.getElementById('ml-results-panel').classList.remove('hidden');
+  const titleEl = document.getElementById('dce-detections-title');
+  if (titleEl) {
+    titleEl.innerHTML = `<span class="material-symbols-outlined text-sm text-primary">fact_check</span> Dead Code Audit: Eliminated Statements`;
+  }
+  const badgeEl = document.getElementById('ml-model-badge');
+
+  if (mlPreds.details_available === false || mlPreds.removal_details_unavailable) {
+    if (badgeEl) {
+      badgeEl.textContent = 'Removal details unavailable for this run';
+      badgeEl.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200';
+    }
+    const list = document.getElementById('ml-dead-list');
+    if (list) {
+      list.innerHTML = `<div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs italic text-center">Removal details unavailable for this run.</div>`;
+    }
+    const healthAuditBadge = document.getElementById('health-panel-audit-badge');
+    if (healthAuditBadge) {
+      healthAuditBadge.textContent = 'Details Unavailable';
+    }
+    const healthAuditList = document.getElementById('health-panel-audit-list');
+    if (healthAuditList) {
+      healthAuditList.innerHTML = `<div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs italic text-center">Removal details unavailable for this run.</div>`;
+    }
+    document.getElementById('ml-uncertain-panel')?.classList.add('hidden');
+    return;
+  }
+
+  if (badgeEl) {
+    badgeEl.textContent = `${deadCount} statement${deadCount === 1 ? '' : 's'} removed · ${isClassical ? 'classical-passes' : (mlPreds.model_version || 'hybrid-v2')}`;
+    badgeEl.className = isClassical ? 'text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200' : 'text-[10px] font-mono px-2 py-0.5 rounded bg-violet-100 text-violet-700 border border-violet-200';
+  }
+
+  // Render function for each dead code audit item
+  const renderAuditRow = (item) => {
+    const conf        = (item.confidence ?? 0.85);
+    const confPct     = (conf * 100).toFixed(1);
+    const confCls     = confidenceColor(conf);
+    const isML        = !isClassical && (item.source === 'gnn' || item.source === 'fallback' || (item.pass && item.pass.includes('ML')));
+    const passName    = item.pass || (isML ? `ML-Guided: GNN Inference (${confPct}% conf)` : 'Classical Rule: Dead Store Elimination (DSE)');
+    const snippet     = item.text || `Instruction [Node ${item.id}]`;
+    const plainReason = item.reason || 'Dead statement pruned during optimization pass';
+    const influencers = (item.top_influencers || []).join(', ');
+
+    return `
+      <div class="p-3 rounded-xl bg-white border border-slate-200 hover:border-primary/40 transition-all shadow-sm group" id="ml-item-${item.id}">
+        <div class="flex items-start justify-between gap-3 mb-1.5">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded ${isML ? 'bg-violet-100 text-violet-800 border border-violet-200' : 'bg-blue-100 text-blue-800 border border-blue-200'}">
+              ${isML ? '🧠 ' : '⚙️ '}${escHtml(passName)}
+            </span>
+            ${isML ? `
+            <div class="flex items-center gap-1.5">
+              <div class="w-12 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                <div class="h-full rounded-full bg-current ${confCls}" style="width:${confPct}%"></div>
               </div>
-              <span class="text-[10px] font-mono ${confCls}">${confPct}%</span>
-              <span class="text-[9px] font-mono text-slate-400 uppercase">${src}</span>
-              ${influencers ? `<span class="text-[9px] text-slate-400">← ${influencers}</span>` : ''}
-            </div>
+              <span class="text-[10px] font-mono font-bold ${confCls}">${confPct}%</span>
+            </div>` : ''}
+            ${influencers ? `<span class="text-[9px] font-mono text-slate-400">influencers: ${escHtml(influencers)}</span>` : ''}
           </div>
-          <!-- Actions & Feedback buttons -->
-          <div class="flex gap-1 items-center shrink-0">
-            <button title="Explain why this was removed" onclick="explainDeadItem('${item.id}', '${escHtml(item.reason || '').replace(/'/g, "\\'")}', ${conf})" 
-              class="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary hover:text-white transition-all mr-1 cursor-pointer flex items-center gap-1 shadow-sm">
+          <div class="flex items-center gap-1 shrink-0">
+            <button title="Explain why this was removed" onclick="explainDeadItem('${item.id}', '${escHtml(plainReason).replace(/'/g, "\\'")}', ${conf})" 
+              class="px-2.5 py-0.5 rounded-lg bg-primary/10 border border-primary/20 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary hover:text-white transition-all cursor-pointer flex items-center gap-1 shadow-sm">
               <span class="material-symbols-outlined text-[13px]">psychology</span> Explain
             </button>
             <button title="Confirm: this IS dead code" onclick="sendFeedback('${item.id}', true, event)"
@@ -2251,8 +2393,41 @@ function renderMlResults(mlPreds, runId) {
             </button>
           </div>
         </div>
-      `;
-    }).join('');
+        <!-- Original line/snippet -->
+        <div class="my-1.5 font-mono text-xs bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg border border-slate-800 break-all select-all flex items-center gap-2">
+          <span class="text-slate-500 text-[10px] select-none uppercase font-sans font-bold">Stmt:</span>
+          <code>${escHtml(snippet)}</code>
+        </div>
+        <!-- One-line plain-English reason -->
+        <p class="text-xs text-slate-600 leading-normal">
+          <span class="font-bold text-slate-800">Reason:</span> ${escHtml(plainReason)}
+        </p>
+      </div>
+    `;
+  };
+
+  // Render on Dashboard
+  const list = document.getElementById('ml-dead-list');
+  if (list) {
+    if (!mlPreds.dead_items || !mlPreds.dead_items.length) {
+      list.innerHTML = `<p class="text-xs text-slate-500 italic">No dead items detected by ${isClassical ? 'classical' : 'ML'} pass.</p>`;
+    } else {
+      list.innerHTML = mlPreds.dead_items.map(renderAuditRow).join('');
+    }
+  }
+
+  // Also synchronize to Dedicated Health & Security Panel
+  const healthAuditList = document.getElementById('health-panel-audit-list');
+  const healthAuditBadge = document.getElementById('health-panel-audit-badge');
+  if (healthAuditBadge) {
+    healthAuditBadge.textContent = `${deadCount} Statement${deadCount === 1 ? '' : 's'} Eliminated`;
+  }
+  if (healthAuditList) {
+    if (!mlPreds.dead_items || !mlPreds.dead_items.length) {
+      healthAuditList.innerHTML = `<p class="text-xs text-slate-500 italic">No statements eliminated in this run.</p>`;
+    } else {
+      healthAuditList.innerHTML = mlPreds.dead_items.map(renderAuditRow).join('');
+    }
   }
 
   // Render uncertainty list

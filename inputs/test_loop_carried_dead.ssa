@@ -1,0 +1,37 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  int i;
+  int acc;
+  int res;
+  int _10;
+
+  <bb 2> :
+  i_1 = 0;
+  acc_1 = 0;
+  res_1 = 100;
+  goto <bb 4>;
+
+  <bb 3> :
+  acc_2 = acc_0 + 1;
+  res_2 = res_0 + 5;
+  i_2 = i_0 + 1;
+
+  <bb 4> :
+  # i_0 = PHI <i_1(2), i_2(3)>
+  # acc_0 = PHI <acc_1(2), acc_2(3)>
+  # res_0 = PHI <res_1(2), res_2(3)>
+  if (i_0 <= 10)
+    goto <bb 3>;
+  else
+    goto <bb 5>;
+
+  <bb 5> :
+  _10 = res_0;
+
+  <bb 6> :
+<L0>:
+  return _10;
+
+}

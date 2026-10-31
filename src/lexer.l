@@ -37,6 +37,11 @@ static int expect_function_sig = 0;
 
 "return"[^\n]*";"   { yylval.str = strdup(yytext); return RETURN_STMT; }
 
+[#]?[ \t]*[a-zA-Z0-9_.]+[ \t]*=[ \t]*"PHI"[ \t]*"<"[^>\n]*">"[;]? {
+    yylval.str = strdup(yytext);
+    return TEXT_LINE;
+}
+
 [a-zA-Z0-9_._:*&<> ]+[ ]*=[^;\n]*";" {
     yylval.str = strdup(yytext);
     return TEXT_LINE;

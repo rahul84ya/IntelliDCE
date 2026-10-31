@@ -192,6 +192,8 @@ void exportIRFeaturesToJSON(const ProgramIR& prog, const std::string& out_path) 
         for (const auto& block : func.blocks) {
             // Detect after_terminal within this block
             bool after_terminal = false;
+            bool pending_cond = false;
+            int cond_gotos = 0;
 
             // is_phi: check if statement contains "PHI"
             // is_branch_target: block is in br_tgts
@@ -247,8 +249,18 @@ void exportIRFeaturesToJSON(const ProgramIR& prog, const std::string& out_path) 
                 out << "        }";
 
                 // Update after_terminal for next iteration
-                if (stmt.type == STMT_RETURN || stmt.type == STMT_GOTO)
+                if (stmt.type == STMT_COND) {
+                    pending_cond = true;
+                    cond_gotos = 0;
+                } else if (pending_cond && stmt.type == STMT_GOTO) {
+                    cond_gotos++;
+                    if (cond_gotos >= 2) {
+                        after_terminal = true;
+                        pending_cond = false;
+                    }
+                } else if (stmt.type == STMT_RETURN || stmt.type == STMT_GOTO) {
                     after_terminal = true;
+                }
             }
         }
 

@@ -2,17 +2,48 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <filesystem>
 #include <map>
 #include <cstdlib>
+#include <cctype>
 #include "ir.h"
 
-namespace fs = std::filesystem;
+// Resilient filesystem handling:
+// std::filesystem was introduced in C++17. In IDEs/parsers defaulting to C++14/C++11,
+// std::filesystem is undeclared, resulting in the "fs error" / "undeclared identifier 'fs'".
+// This fallback enables seamless support across both modern C++17 and older language server modes.
+#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include) && __has_include(<filesystem>)
+  #include <filesystem>
+  namespace fs = std::filesystem;
+#elif defined(__has_include) && __has_include(<experimental/filesystem>)
+  #include <experimental/filesystem>
+  namespace fs = std::experimental::filesystem;
+#else
+  #include <sys/stat.h>
+  #include <sys/types.h>
+  #include <unistd.h>
+  namespace fs {
+      inline bool exists(const std::string& path) {
+          struct stat st;
+          return stat(path.c_str(), &st) == 0;
+      }
+      inline bool is_directory(const std::string& path) {
+          struct stat st;
+          return (stat(path.c_str(), &st) == 0) && S_ISDIR(st.st_mode);
+      }
+      inline bool create_directory(const std::string& path) {
+          #if defined(_WIN32)
+          return (_mkdir(path.c_str()) == 0);
+          #else
+          return (mkdir(path.c_str(), 0755) == 0);
+          #endif
+      }
+  }
+#endif
 
 extern int yyparse();
+extern FILE* yyin;
 void applyGlobalDCE(ProgramIR& prog);
 void exportIRFeaturesToJSON(const ProgramIR& prog, const std::string& out_path);
-void applyIntelligentDCE(ProgramIR& prog, const std::map<int, std::string>& dead_reasons);
 
 void export_to_ssa(const ProgramIR& prog, const std::string& filepath) {
     std::ofstream out(filepath);
@@ -83,6 +114,7 @@ int main(int argc, char** argv) {
     double ml_threshold = 0.6;   // confidence threshold for ML dead-code removal
     std::string projectName = "analysis_report";
 
+    std::string inputFile = "";
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--ml-extract") ml_extract = true;
@@ -94,10 +126,29 @@ int main(int argc, char** argv) {
             else if (i + 1 < argc)
                 ml_threshold = std::stod(argv[++i]);
         }
-        else if (arg.rfind("--", 0) != 0) projectName = arg;
+        else if (arg.rfind("--", 0) != 0) {
+            if (inputFile.empty() && fs::exists(arg) && !fs::is_directory(arg)) {
+                inputFile = arg;
+            } else {
+                projectName = arg;
+            }
+        }
     }
 
-    if (yyparse() == 0) {
+    FILE* in_fp = nullptr;
+    if (!inputFile.empty()) {
+        in_fp = std::fopen(inputFile.c_str(), "r");
+        if (!in_fp) {
+            std::cerr << "[Error] Cannot open input file: " << inputFile << "\n";
+            return 1;
+        }
+        yyin = in_fp;
+    }
+
+    int parse_res = yyparse();
+    if (in_fp) std::fclose(in_fp);
+
+    if (parse_res == 0) {
         if (ml_extract) {
             if (!fs::exists(projectName)) fs::create_directory(projectName);
             exportIRFeaturesToJSON(program, projectName + "/ir_graph_features.json");
@@ -148,6 +199,7 @@ int main(int argc, char** argv) {
                 // ── Parse dead_items ────────────────────────────────────────
                 // Format: {"id": N, "reason": "...", "confidence": F,
                 //          "source": "...", "top_influencers": [...]}
+                std::map<int, std::pair<double, std::string>> dead_meta;
                 size_t pos = 0;
                 while ((pos = content.find("\"id\":", pos)) != std::string::npos) {
                     pos += 5;
@@ -198,6 +250,7 @@ int main(int argc, char** argv) {
                     std::cout << tag << " conf=" << conf << " " << reason
                               << " (id=" << id << ")\n";
                     dead_map[id] = reason + " [" + src + " conf=" + std::to_string(conf) + "]";
+                    dead_meta[id] = {conf, src};
                 }
 
                 // ── Parse uncertainty_nodes (deferred — skip removal) ───────
@@ -248,7 +301,7 @@ int main(int argc, char** argv) {
                     }
                 }
 
-                applyIntelligentDCE(program, dead_map);
+                applyIntelligentDCE(program, dead_map, dead_meta);
                 std::cout << "[ML Pipeline] Inference complete. "
                           << dead_map.size() << " dead instructions removed.\n";
             } else {
@@ -286,6 +339,8 @@ int main(int argc, char** argv) {
 
         export_to_dot(program, projectName + "/graph.dot");
         export_to_ssa(program, projectName + "/optimized.ssa");
+        export_removed_statements_json(projectName + "/removed_statements.json");
+        export_removed_statements_json("removed_statements.json");
 
         std::cout << "Analysis complete. Intermediate logs generated." << std::endl;
         std::cout << "Files generated in folder: ./" << projectName << std::endl;

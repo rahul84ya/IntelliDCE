@@ -17,14 +17,22 @@ int stmt_counter = 0;
 int current_block_idx = -1;
 
 StmtType classify_statement(const std::string& text) {
-    if (text.find("= PHI") != std::string::npos) return STMT_PHI;
+    if (text.find("= PHI") != std::string::npos || text.find("= phi") != std::string::npos || text.find("PHI <") != std::string::npos) return STMT_PHI;
+    if (text.find("return") != std::string::npos) return STMT_RETURN;
+    if (text.find("goto")   != std::string::npos) return STMT_GOTO;
+
+    // Check for conditional branch "if (...)": must be checked before '='
+    // because comparison operators (<=, >=, ==, !=) contain '='
+    size_t first_non_ws = text.find_first_not_of(" \t");
+    if (first_non_ws != std::string::npos && text.compare(first_non_ws, 2, "if") == 0 &&
+        (first_non_ws + 2 >= text.size() || text[first_non_ws + 2] == ' ' || text[first_non_ws + 2] == '(')) {
+        return STMT_COND;
+    }
+
     if (text.find('=') != std::string::npos) {
         if (text.find('(') != std::string::npos) return STMT_CALL;
         return STMT_ASSIGN;
     }
-    if (text.find("return") != std::string::npos) return STMT_RETURN;
-    if (text.find("goto")   != std::string::npos) return STMT_GOTO;
-    if (text.find("if")     != std::string::npos) return STMT_COND;
     if (text.find('(')      != std::string::npos) return STMT_CALL;
     return STMT_OTHER;
 }

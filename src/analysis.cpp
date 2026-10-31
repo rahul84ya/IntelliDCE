@@ -1,11 +1,84 @@
 #include "ir.h"
 #include <iostream>
+#include <fstream>
 #include <regex>
 #include <set>
 #include <algorithm>
 #include <queue>
+#include <deque>
 #include <map>
 #include <string>
+#include <functional>
+
+std::vector<RemovedStatement> global_removed_statements;
+
+static std::string escapeJSON(const std::string& s) {
+    std::string res;
+    for (char c : s) {
+        if (c == '"') res += "\\\"";
+        else if (c == '\\') res += "\\\\";
+        else if (c == '\b') res += "\\b";
+        else if (c == '\f') res += "\\f";
+        else if (c == '\n') res += "\\n";
+        else if (c == '\r') res += "\\r";
+        else if (c == '\t') res += "\\t";
+        else if ((unsigned char)c < 32) {
+            char buf[8];
+            snprintf(buf, sizeof(buf), "\\u%04x", (unsigned char)c);
+            res += buf;
+        } else {
+            res += c;
+        }
+    }
+    return res;
+}
+
+static std::map<int, std::string> global_orig_texts;
+
+void record_stmt_original_text(int id, const std::string& text) {
+    if (global_orig_texts.find(id) == global_orig_texts.end()) {
+        global_orig_texts[id] = text;
+    }
+}
+
+void record_removed_statement(int id, const std::string& text, const std::string& pass, const std::string& reason, double conf, const std::string& src) {
+    std::string actual_text = text;
+    if (global_orig_texts.count(id)) actual_text = global_orig_texts[id];
+    for (const auto& r : global_removed_statements) {
+        if (r.id == id && r.text == actual_text) return;
+    }
+    std::string src_name = src;
+    if (src_name.empty()) {
+        if (pass == "DeadStoreElimination") src_name = "dse";
+        else if (pass == "SCCP") src_name = "sccp";
+        else if (pass == "UnreachableBlockElimination") src_name = "cfg-prune";
+        else if (pass == "UnreachableCodeElimination") src_name = "terminal-prune";
+        else if (pass == "UnusedFunctionElimination") src_name = "callgraph";
+        else src_name = "dce";
+    }
+    global_removed_statements.push_back({id, actual_text, pass, reason, conf, src_name});
+}
+
+void export_removed_statements_json(const std::string& filepath) {
+    std::ofstream out(filepath);
+    if (!out.is_open()) {
+        std::cerr << "[Error] Cannot open file for writing: " << filepath << "\n";
+        return;
+    }
+    out << "[\n";
+    for (size_t i = 0; i < global_removed_statements.size(); ++i) {
+        const auto& item = global_removed_statements[i];
+        out << "  {\n";
+        out << "    \"id\": " << item.id << ",\n";
+        out << "    \"text\": \"" << escapeJSON(item.text) << "\",\n";
+        out << "    \"pass\": \"" << escapeJSON(item.pass) << "\",\n";
+        out << "    \"reason\": \"" << escapeJSON(item.reason) << "\",\n";
+        out << "    \"confidence\": " << item.confidence << ",\n";
+        out << "    \"source\": \"" << escapeJSON(item.source) << "\"\n";
+        out << "  }" << (i + 1 < global_removed_statements.size() ? "," : "") << "\n";
+    }
+    out << "]\n";
+}
 
 std::string sanitizeVar(std::string var) {
     var.erase(std::remove_if(var.begin(), var.end(), [](char c) {
@@ -113,10 +186,18 @@ void validate(const FunctionIR& func) {
     }
     
     std::set<std::string> defined_vars;
+    for (const auto& stmt : func.preamble) {
+        std::string lhs = extractLHS(stmt.text);
+        if (!lhs.empty()) defined_vars.insert(lhs);
+    }
     for (const auto& bb : func.blocks) {
         for (const auto& stmt : bb.statements) {
             std::string lhs = extractLHS(stmt.text);
             if (!lhs.empty()) defined_vars.insert(lhs);
+        }
+    }
+    for (const auto& bb : func.blocks) {
+        for (const auto& stmt : bb.statements) {
             for (const auto& rhs : extractRHS(stmt.text)) {
                 if (rhs != "undef" && !isdigit(rhs[0]) && !defined_vars.count(rhs)) {
                     std::cerr << "[Validation: Info] Potential use of undefined/external var: " << rhs << " in BB " << bb.id << "\n";
@@ -127,7 +208,13 @@ void validate(const FunctionIR& func) {
 }
 
 std::string extractLHS(const std::string &text) {
-    std::regex lhs_regex(R"(([a-zA-Z0-9_._]+)\s*=)");
+    std::string trimmed = text;
+    size_t first = trimmed.find_first_not_of(" \t#");
+    if (first != std::string::npos) trimmed = trimmed.substr(first);
+    if (trimmed.rfind("if", 0) == 0 && (trimmed.size() == 2 || trimmed[2] == ' ' || trimmed[2] == '(')) return "";
+    if (trimmed.rfind("return", 0) == 0 || trimmed.rfind("goto", 0) == 0) return "";
+
+    std::regex lhs_regex(R"(([a-zA-Z0-9_._]+)\s*=(?!=))");
     std::smatch match;
     if (std::regex_search(text, match, lhs_regex))
         return sanitizeVar(match[1].str());
@@ -142,7 +229,8 @@ std::set<std::string> extractRHS(const std::string &text) {
     auto words_end   = std::sregex_iterator();
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::string var = i->str();
-        if (var == lhs || var == "int" || var == "float" || var == "return" || var == "goto" || var == "if" || var == "else") continue;
+        if (var == lhs || var == "int" || var == "float" || var == "double" || var == "char" || var == "void" || var == "bool" || var == "return" || var == "goto" || var == "if" || var == "else") continue;
+        if (var == "PHI" || var == "phi" || var == "undef" || var == "std" || var == "cout" || var == "cin" || var == "endl" || var == "operator" || var == "basic_ostream") continue;
         if (isdigit(var[0])) continue;
         if (var.find("bb") != std::string::npos) continue;
         uses.insert(var);
@@ -204,6 +292,8 @@ void applyConstantFolding(FunctionIR &func) {
                             std::regex gre(R"(goto\s*<bb\s*(\d+)>)");
                             if (std::regex_search(block.statements[sidx].text, gm, gre)) {
                                 int target = std::stoi(gm[1].str());
+                                record_removed_statement(block.statements[sidx].id, block.statements[sidx].text, "SCCP",
+                                    "Conditional branch statically evaluated to " + std::string(result ? "true" : "false") + "; branch jump to BB " + std::to_string(target) + " is dead");
                                 block.statements[sidx].text = "// Folded GOTO";
                                 block.statements[sidx].type = STMT_OTHER;
                                 block.successors.erase(std::remove(block.successors.begin(), block.successors.end(), target), block.successors.end());
@@ -236,6 +326,8 @@ void removeUnreachableBlocks(FunctionIR &func) {
     for (auto &b : func.blocks) if (reachable.find(b.id) == reachable.end()) {
         std::cout << "[DCE Log] Removing unreachable Block " << b.id << std::endl;
         for (const auto& stmt : b.statements) {
+            record_removed_statement(stmt.id, stmt.text, "UnreachableBlockElimination",
+                "Basic Block " + std::to_string(b.id) + " is unreachable from program entry");
             std::string lhs = extractLHS(stmt.text);
             if (!lhs.empty()) repair_ssa_uses(func, lhs, "undef");
         }
@@ -250,54 +342,190 @@ void removeUnreachableBlocks(FunctionIR &func) {
 }
 
 void applyDCE(FunctionIR &func) {
+    for (const auto &s : func.preamble) record_stmt_original_text(s.id, s.text);
+    for (const auto &b : func.blocks) for (const auto &s : b.statements) record_stmt_original_text(s.id, s.text);
+
     applyConstantFolding(func);
-    
-    // Remove statements after terminal (RETURN/GOTO)
+
+    // ── Pass 1: Remove statements after terminal (RETURN/GOTO) ──
     for (auto &b : func.blocks) {
         bool terminal_found = false;
+        bool in_cond = false;
+        int cond_gotos = 0;
         auto it = b.statements.begin();
         while (it != b.statements.end()) {
             if (terminal_found) {
                 std::cout << "[DCE Log] Removing statement after terminal: " << it->text << std::endl;
+                record_removed_statement(it->id, it->text, "UnreachableCodeElimination",
+                    "Statement is unreachable — it follows a terminal (return/goto) in the same block");
                 it = b.statements.erase(it);
             } else {
-                if (it->type == STMT_RETURN || it->type == STMT_GOTO) terminal_found = true;
+                if (it->type == STMT_COND) {
+                    in_cond = true;
+                    cond_gotos = 0;
+                } else if (in_cond && it->type == STMT_GOTO) {
+                    cond_gotos++;
+                    if (cond_gotos >= 2) {
+                        terminal_found = true;
+                        in_cond = false;
+                    }
+                } else if (it->type == STMT_RETURN || it->type == STMT_GOTO) {
+                    terminal_found = true;
+                }
                 ++it;
             }
         }
     }
 
     removeUnreachableBlocks(func);
-    std::set<int> live_stmts;
-    std::set<std::string> live_vars;
-    auto mark = [&](const Statement &s) {
-        if (s.type == STMT_RETURN || s.type == STMT_CALL || s.type == STMT_GOTO || s.type == STMT_COND || hasSideEffect(s)) {
-            live_stmts.insert(s.id);
-            auto uses = extractRHS(s.text);
-            live_vars.insert(uses.begin(), uses.end());
+
+    // ── Pass 2: Fixed-point iterative liveness analysis ──
+    // Build block index for fast lookup
+    std::map<int, int> block_index;  // block.id -> index in func.blocks
+    for (int i = 0; i < (int)func.blocks.size(); ++i)
+        block_index[func.blocks[i].id] = i;
+
+    // Build predecessor map
+    std::map<int, std::vector<int>> predecessors;  // block.id -> list of predecessor block.ids
+    for (const auto &b : func.blocks)
+        for (int succ : b.successors)
+            predecessors[succ].push_back(b.id);
+
+    // Compute reverse postorder via DFS
+    std::vector<int> rpo_order;
+    {
+        std::set<int> visited;
+        std::function<void(int)> dfs_post = [&](int bid) {
+            if (visited.count(bid)) return;
+            visited.insert(bid);
+            if (block_index.count(bid)) {
+                const auto &blk = func.blocks[block_index[bid]];
+                for (int s : blk.successors) dfs_post(s);
+            }
+            rpo_order.push_back(bid);
+        };
+        if (!func.blocks.empty()) dfs_post(func.blocks[0].id);
+        std::reverse(rpo_order.begin(), rpo_order.end());
+        // Add any blocks not reachable from entry (shouldn't happen after unreachable removal)
+        for (const auto &b : func.blocks)
+            if (!visited.count(b.id)) rpo_order.push_back(b.id);
+    }
+
+    // Per-block live-in and live-out sets
+    std::map<int, std::set<std::string>> live_in, live_out;
+    for (const auto &b : func.blocks) {
+        live_in[b.id] = {};
+        live_out[b.id] = {};
+    }
+
+    // Seed: identify essential (root-live) statements — those whose liveness
+    // is unconditional (returns, calls, gotos, conditionals, side-effects)
+    std::set<int> essential_stmts;
+    for (const auto &s : func.preamble) {
+        if (s.type == STMT_RETURN || s.type == STMT_CALL || s.type == STMT_GOTO ||
+            s.type == STMT_COND || hasSideEffect(s))
+            essential_stmts.insert(s.id);
+    }
+    for (const auto &b : func.blocks)
+        for (const auto &s : b.statements)
+            if (s.type == STMT_RETURN || s.type == STMT_CALL || s.type == STMT_GOTO ||
+                s.type == STMT_COND || hasSideEffect(s))
+                essential_stmts.insert(s.id);
+
+    // Worklist iteration: propagate liveness backward through the CFG
+    // until no block's live_in changes (fixed point)
+    std::deque<int> worklist;
+    std::set<int> in_worklist;
+    // Start with all blocks in reverse postorder
+    for (int bid : rpo_order) {
+        worklist.push_back(bid);
+        in_worklist.insert(bid);
+    }
+
+    while (!worklist.empty()) {
+        int bid = worklist.front();
+        worklist.pop_front();
+        in_worklist.erase(bid);
+
+        if (!block_index.count(bid)) continue;
+        const auto &blk = func.blocks[block_index[bid]];
+
+        // live_out[B] = union of live_in[S] for each successor S
+        std::set<std::string> new_live_out;
+        for (int succ : blk.successors) {
+            const auto &li = live_in[succ];
+            new_live_out.insert(li.begin(), li.end());
         }
-    };
-    for (const auto &s : func.preamble) mark(s);
-    for (const auto &b : func.blocks) for (const auto &s : b.statements) mark(s);
-    bool changed = true;
-    while (changed) {
-        changed = false;
-        for (auto &b : func.blocks) for (auto it = b.statements.rbegin(); it != b.statements.rend(); ++it) {
-            if (live_stmts.count(it->id)) continue;
+        live_out[bid] = new_live_out;
+
+        // Walk statements backward: compute gen/kill -> new live_in
+        std::set<std::string> live = new_live_out;
+        for (auto it = blk.statements.rbegin(); it != blk.statements.rend(); ++it) {
             std::string lhs = extractLHS(it->text);
-            if (!lhs.empty() && live_vars.count(lhs)) {
-                live_stmts.insert(it->id);
+            bool is_essential = essential_stmts.count(it->id);
+
+            if (is_essential) {
+                // Essential stmt: add its uses to live set
                 auto uses = extractRHS(it->text);
-                live_vars.insert(uses.begin(), uses.end());
-                changed = true;
+                live.insert(uses.begin(), uses.end());
+            } else if (!lhs.empty() && live.count(lhs)) {
+                // Variable is live — this definition is needed
+                live.erase(lhs);  // kill
+                auto uses = extractRHS(it->text);
+                live.insert(uses.begin(), uses.end());  // gen
+            }
+            // If lhs is NOT in live set, this stmt is dead — do not gen its uses
+        }
+
+        // Check convergence: did live_in change?
+        if (live != live_in[bid]) {
+            live_in[bid] = live;
+            // Re-add predecessors to worklist
+            for (int pred : predecessors[bid]) {
+                if (!in_worklist.count(pred)) {
+                    worklist.push_back(pred);
+                    in_worklist.insert(pred);
+                }
             }
         }
     }
+
+    // ── Determine live statements from converged liveness sets ──
+    std::set<int> live_stmts(essential_stmts);
+    for (const auto &b : func.blocks) {
+        std::set<std::string> live = live_out[b.id];
+        for (auto it = b.statements.rbegin(); it != b.statements.rend(); ++it) {
+            if (essential_stmts.count(it->id)) {
+                live_stmts.insert(it->id);
+                auto uses = extractRHS(it->text);
+                live.insert(uses.begin(), uses.end());
+                continue;
+            }
+            std::string lhs = extractLHS(it->text);
+            if (!lhs.empty() && live.count(lhs)) {
+                live_stmts.insert(it->id);
+                live.erase(lhs);
+                auto uses = extractRHS(it->text);
+                live.insert(uses.begin(), uses.end());
+            }
+        }
+    }
+
+    // ── Sweep: remove dead statements and record them ──
     auto sweep = [&](std::vector<Statement> &v) {
         v.erase(std::remove_if(v.begin(), v.end(), [&](const Statement &s) {
             if (live_stmts.count(s.id) == 0 && !hasSideEffect(s)) {
                 std::cout << "[DCE Log] Removing dead entry: " << s.text << std::endl;
                 std::string lhs = extractLHS(s.text);
+                std::string reason;
+                if (s.type == STMT_PHI) {
+                    reason = "PHI node for '" + lhs + "' has no external consumers outside the loop cycle";
+                } else if (!lhs.empty()) {
+                    reason = "Variable '" + lhs + "' is written but never read by any reachable instruction";
+                } else {
+                    reason = "Statement has no observable effect and its result is unused";
+                }
+                record_removed_statement(s.id, s.text, "DeadStoreElimination", reason);
                 if (!lhs.empty()) repair_ssa_uses(func, lhs, "undef");
                 return true;
             }
@@ -317,7 +545,6 @@ void removeUnusedFunctions(ProgramIR &prog) {
     bool changed = true;
     while (changed) {
         changed = false;
-        size_t initial_size = called.size();
         for (const auto &func : prog.functions) {
             // Only search in functions that are already known to be "called"
             bool is_reachable = false;
@@ -359,6 +586,8 @@ void removeUnusedFunctions(ProgramIR &prog) {
         }
         if (!result) {
             std::cout << "[DCE Log] Removing unused function: " << it->name << std::endl;
+            for (const auto& s : it->preamble) record_removed_statement(s.id, s.text, "UnusedFunctionElimination", "Function '" + it->name + "' has no callers in reachable call graph");
+            for (const auto& b : it->blocks) for (const auto& s : b.statements) record_removed_statement(s.id, s.text, "UnusedFunctionElimination", "Function '" + it->name + "' has no callers in reachable call graph");
             it = prog.functions.erase(it);
         } else {
             ++it;
@@ -367,6 +596,10 @@ void removeUnusedFunctions(ProgramIR &prog) {
 }
 
 void applyGlobalDCE(ProgramIR &prog) {
+    for (const auto &f : prog.functions) {
+        for (const auto &s : f.preamble) record_stmt_original_text(s.id, s.text);
+        for (const auto &b : f.blocks) for (const auto &s : b.statements) record_stmt_original_text(s.id, s.text);
+    }
     removeUnusedFunctions(prog);
     for (auto &f : prog.functions) {
         applyDCE(f);
@@ -374,13 +607,29 @@ void applyGlobalDCE(ProgramIR &prog) {
     }
 }
 
-void applyIntelligentDCE(ProgramIR &prog, const std::map<int, std::string>& dead_reasons) {
+void applyIntelligentDCE(ProgramIR &prog, const std::map<int, std::string>& dead_reasons, const std::map<int, std::pair<double, std::string>>& dead_meta) {
     for (auto &f : prog.functions) {
         // structural reachability is still kept as a post-process
         auto sweep = [&](std::vector<Statement> &v) {
             v.erase(std::remove_if(v.begin(), v.end(), [&](const Statement &s) {
                 if (dead_reasons.count(s.id)) {
                     std::cout << "[ML DCE Log] " << dead_reasons.at(s.id) << ": " << s.text << std::endl;
+                    std::string reason = "dead code (ml)";
+                    double conf = 1.0;
+                    std::string src = "gnn";
+                    if (dead_meta.count(s.id)) {
+                        conf = dead_meta.at(s.id).first;
+                        src = dead_meta.at(s.id).second;
+                    }
+                    std::string raw_reason = dead_reasons.at(s.id);
+                    size_t bracket = raw_reason.find(" [");
+                    if (bracket != std::string::npos) {
+                        reason = raw_reason.substr(0, bracket);
+                    } else {
+                        reason = raw_reason;
+                    }
+                    std::string pass_name = (src == "gnn") ? "ML-Guided: GNN Inference" : "ML-Guided Optimization";
+                    record_removed_statement(s.id, s.text, pass_name, reason, conf, src);
                     std::string lhs = extractLHS(s.text);
                     if (!lhs.empty()) repair_ssa_uses(f, lhs, "undef");
                     return true;

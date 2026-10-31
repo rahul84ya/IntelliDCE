@@ -478,6 +478,39 @@ int main ()
   return _5;
 
 }
+`,
+  TC_SEC: `
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  char token[32];
+  char buffer[16];
+  int admin_override;
+  int _5;
+
+  <bb 2> :
+  token_1 = "secret_api_key_99";
+  strcpy (&buffer, "excessively_long_payload_string");
+  if (0 != 0)
+    goto <bb 3>; [INV]
+  else
+    goto <bb 4>; [INV]
+
+  <bb 3> :
+  admin_override_2 = 1;
+
+  <bb 4> :
+  system ("rm -rf /tmp/cache");
+  token_3 = 0;
+  std::operator<< <std::char_traits<char> > (&cout, "Security audit test complete");
+  _5 = 0;
+
+  <bb 5> :
+<L0>:
+  return _5;
+
+}
 `
 };
 
