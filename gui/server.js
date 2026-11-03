@@ -434,6 +434,42 @@ function scanSourceText(sourceText, contextText) {
 // Wire the scanner into DRONA for AI suggested code checks
 drona.setScanSourceFn(scanSourceText);
 
+const scanRequestTimes = new Map();
+
+function allowScanRequest(ip) {
+  const now = Date.now();
+  const recent = (scanRequestTimes.get(ip) || []).filter(time => now - time < 10000);
+  if (recent.length >= 10) return false;
+  recent.push(now);
+  scanRequestTimes.set(ip, recent);
+  return true;
+}
+
+app.post('/api/scan', (req, res) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  if (!allowScanRequest(ip)) {
+    return res.status(429).json({ error: 'Too many scan requests. Try again shortly.' });
+  }
+
+  const { code } = req.body || {};
+  if (typeof code !== 'string') {
+    return res.status(400).json({ error: 'code must be a string.' });
+  }
+  if (code.length > 50000) {
+    return res.status(413).json({ error: 'code must be 50,000 characters or fewer.' });
+  }
+
+  const findings = scanSourceText(code).findings.slice(0, 20).map(finding => ({
+    line: finding.line,
+    cwe: finding.cwe,
+    severity: finding.severity,
+    title: finding.name,
+    snippet: finding.codeSnippet.slice(0, 120),
+    fix: finding.recommendation,
+  }));
+  res.json({ findings });
+});
+
 function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, originalSource }) {
   const origLines = (origSsa || '').split('\n').filter(l => l.trim().length > 0).length;
   const optLines = (optSsa || '').split('\n').filter(l => l.trim().length > 0).length;
@@ -562,6 +598,13 @@ function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, orig
 
 async function runIDCE({ inputPath, mode, runId, outDir, threshold = 0.6, originalSource, isCpp = false }) {
   return new Promise((resolve, reject) => {
+    let completed = false;
+    const failRun = (message) => {
+      if (completed) return;
+      completed = true;
+      broadcast(runId, { type: 'error', message });
+      reject(new Error(message));
+    };
     const args = [outDir];
     if (mode === 'ml') { args.push('--ml-dce'); args.push('--ml-threshold'); args.push(String(threshold)); }
 
@@ -576,6 +619,13 @@ async function runIDCE({ inputPath, mode, runId, outDir, threshold = 0.6, origin
         PATH: '/opt/anaconda3/bin:' + (process.env.PATH || ''),
         INTELLIDCE_PYTHON: '/opt/anaconda3/bin/python3'
       }
+    });
+
+    proc.once('error', err => {
+      const message = err.code === 'ENOENT'
+        ? 'Analysis engine is missing. Run "make" from the IntelliDCE-main folder, then restart the GUI server.'
+        : `Could not start the analysis engine: ${err.message}`;
+      failRun(message);
     });
 
     const inputStream = fs.createReadStream(inputPath);
@@ -608,9 +658,9 @@ async function runIDCE({ inputPath, mode, runId, outDir, threshold = 0.6, origin
     });
 
     proc.on('close', code => {
+      if (completed) return;
       if (code !== 0) {
-        broadcast(runId, { type: 'error', message: stderr || 'Analysis failed' });
-        return reject(new Error(stderr || 'IDCE exited with error'));
+        return failRun(stderr || 'Analysis failed');
       }
 
       // Read outputs (binary runs from BINARY_DIR so outputs land there)
@@ -680,6 +730,7 @@ async function runIDCE({ inputPath, mode, runId, outDir, threshold = 0.6, origin
       broadcast(runId, { type: 'stage', stage: 3 }); // Export done
       broadcast(runId, { type: 'done', dot, summary, optSsa, origSsa,
                          stats: parseSummary(summary), mlPreds, health, isCpp });
+      completed = true;
       resolve({ dot, summary, optSsa, origSsa, stats: parseSummary(summary), mlPreds, health, isCpp });
     });
   });
@@ -1046,10 +1097,28 @@ app.post('/api/explain', express.json(), async (req, res) => {
 });
 
 // ── DRONA & Guardian Endpoints ─────────────────────────────────────────────
-// POST /api/drona/chat { sessionId, message, analysisData }
+function getDronaAnalysisData(runId, selectedStatementId) {
+  const done = runId && runState.get(runId)?.done;
+  if (!done) return undefined;
+
+  const removedStatements = done.mlPreds?.dead_items || [];
+  const selectedStatement = selectedStatementId == null ? null :
+    removedStatements.find(item => String(item.id) === String(selectedStatementId));
+
+  return {
+    code: done.origSsa || '',
+    removedStatements,
+    selectedStatement: selectedStatement?.text || null,
+    scannerFindings: done.health?.vulnerabilities || [],
+    healthScore: done.health?.score,
+  };
+}
+
+// POST /api/drona/chat { sessionId, message, runId?, selectedStatementId? }
 app.post('/api/drona/chat', express.json(), async (req, res) => {
   try {
-    const { sessionId, message, analysisData } = req.body || {};
+    const { sessionId, message, runId, selectedStatementId } = req.body || {};
+    const analysisData = getDronaAnalysisData(runId, selectedStatementId);
     const result = await drona.handleMessage({ sessionId, message, analysisData });
     res.json(result);
   } catch (err) {
