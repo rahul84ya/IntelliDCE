@@ -396,3 +396,4 @@ int main() {
     assert.strictEqual(tamperedCheck.brokenAtIndex, 0);
   });
 });
+
