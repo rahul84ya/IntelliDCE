@@ -35,17 +35,37 @@
     el.panel = make('aside', 'drona-panel'); el.panel.setAttribute('aria-label', 'DRONA assistant');
     const header = make('div', 'drona-header');
     const avatar = make('div', 'drona-avatar');
-    avatar.append(make('span', 'material-symbols-outlined text-emerald-600', 'smart_toy'));
+    const orbitTeal = make('div', 'drona-orbit drona-orbit-teal');
+    const orbitViolet = make('div', 'drona-orbit drona-orbit-violet');
+    const orbitParticle = make('div', 'drona-orbit-particle');
+    orbitTeal.append(orbitParticle);
+    const avatarCore = make('div', 'drona-avatar-core');
+    avatarCore.append(make('span', 'material-symbols-outlined drona-avatar-icon', 'smart_toy'));
+    avatar.append(orbitTeal, orbitViolet, avatarCore);
+
     const copy = make('div', 'drona-header-copy');
-    copy.append(make('div', 'drona-title', 'DRONA AI Assistant'));
+    const titleRow = make('div', 'drona-title-row');
+    titleRow.append(make('div', 'drona-title', 'DRONA AI Assistant'));
+    const guardianShield = make('span', 'drona-guardian-badge');
+    guardianShield.title = 'Protected by Guardian Security Gate';
+    guardianShield.append(make('span', 'material-symbols-outlined drona-guardian-icon', 'verified_user'));
+    guardianShield.append(make('span', 'drona-guardian-text', 'Guardian protected'));
+    titleRow.append(guardianShield);
+
+    const subtitleRow = make('div', 'drona-subtitle-row');
+    subtitleRow.append(make('div', 'drona-subtitle', 'Secure Compiler Copilot'));
     el.status = make('div', 'drona-status', 'Checking local AI…');
-    copy.append(el.status);
+    subtitleRow.append(el.status);
+
+    copy.append(titleRow, subtitleRow);
     const actions = make('div', 'drona-header-actions');
     el.clear = make('button', 'drona-btn-icon', 'Clear');
     el.close = make('button', 'drona-btn-icon', '✕');
     el.clear.title = 'Clear session';
     el.close.title = 'Close assistant';
     el.clear.type = el.close.type = 'button';
+    el.clear.setAttribute('aria-label', 'Clear conversation');
+    el.close.setAttribute('aria-label', 'Close assistant');
     actions.append(el.clear, el.close);
     header.append(avatar, copy, actions);
     el.messages = make('div', 'drona-messages scr'); el.messages.setAttribute('aria-live', 'polite');
@@ -117,6 +137,7 @@
     const ready = Boolean(health.online && health.modelInstalled);
     el.dot.classList.toggle('online', ready);
     el.launcher.classList.toggle('online', ready);
+    el.status.classList.toggle('online', ready);
     el.status.textContent = ready ? `Ready · ${health.model || 'local model'}` : 'Local AI unavailable';
   }
 
