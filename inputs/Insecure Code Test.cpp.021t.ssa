@@ -1,0 +1,21 @@
+;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)
+
+int main ()
+{
+  char password[8];
+  char * data;
+  int _5;
+
+  <bb 2> :
+  password_1 = "admin123";
+  vulnerable_copy ("this string is way longer than sixteen bytes on purpose");
+  format_string_bug ("%s%s%s%s");
+  data_2 = use_after_free_demo ();
+  _5 = 0;
+
+  <bb 3> :
+<L0>:
+  return _5;
+
+}
+

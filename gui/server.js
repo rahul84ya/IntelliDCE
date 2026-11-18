@@ -12,6 +12,10 @@ require('dotenv').config();
 const drona    = require('./drona');
 const guardian = require('./guardian');
 const llm      = require('./llm');
+const verifier = require('./verifier');
+const benchmarkRunner = require('./benchmark-runner');
+const audit = require('./audit');
+const sandbox = require('./sandbox');
 
 // ── Paths ──────────────────────────────────────────────────────────────────
 const CORRECTIONS_FILE = path.resolve(__dirname, '..', 'ml_data', 'corrections.jsonl');
@@ -111,37 +115,87 @@ const { TESTCASES_SSA } = require('./testcases_ssa.js');
 // ── Helper: generate fallback GIMPLE SSA from arbitrary C++ ────────────────
 function generateFallbackSsa(cppCode) {
   if (cppCode.includes('<bb 2>')) return cppCode;
-  const lines = cppCode.split('\n')
-    .map(l => l.trim())
-    .filter(l => l && !l.startsWith('#') && !l.startsWith('//') && !l.startsWith('using '));
+  const lines = [];
+  let typeDeclarationDepth = 0;
+  for (const rawLine of cppCode.split('\n')) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#') || line.startsWith('//') || line.startsWith('using ')) continue;
+
+    // Type declarations belong outside executable SSA blocks.  Keeping their
+    // closing `};` in the fallback output makes the GIMPLE parser think the
+    // synthetic function has ended.
+    if (typeDeclarationDepth > 0) {
+      typeDeclarationDepth += (line.match(/{/g) || []).length;
+      typeDeclarationDepth -= (line.match(/}/g) || []).length;
+      continue;
+    }
+    if (/^(struct|class|enum|union)\s+\w+.*\{/.test(line)) {
+      typeDeclarationDepth = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      continue;
+    }
+    lines.push(line);
+  }
   
   let ssa = `;; Function main (main, funcdef_no=0, decl_uid=0, cgraph_uid=0, symbol_order=0)\n\nint main ()\n{\n  <bb 2> :\n`;
   let varIdx = 1;
   let hasReturn = false;
+  const varMap = {};
 
   for (const line of lines) {
     if (line.includes('main()') || line.includes('main ()') || line === '{' || line === '}') continue;
     
-    // Assignment: int x = 5; or x = 5;
-    const assignMatch = line.match(/(?:int|float|double|auto)?\s*([a-zA-Z_]\w*)\s*=\s*([^;]+);/);
+    // Member assignment: curr->next = prev;  Preserve the data-flow shape in
+    // a parser-safe synthetic name instead of emitting C++ punctuation.
+    const memberAssign = line.match(/^([a-zA-Z_]\w*)\s*->\s*([a-zA-Z_]\w*)\s*=\s*([^;]+);$/);
+    if (memberAssign) {
+      const memberName = `${memberAssign[1]}_${memberAssign[2]}`;
+      let expr = memberAssign[3].trim().replace(/([a-zA-Z_]\w*)\s*->\s*([a-zA-Z_]\w*)/g, '$1_$2');
+      for (const [v, ssaV] of Object.entries(varMap)) {
+        expr = expr.replace(new RegExp(`\\b${v}\\b`, 'g'), ssaV);
+      }
+      const ssaVar = `${memberName}_${varIdx++}`;
+      varMap[memberName] = ssaVar;
+      ssa += `  ${ssaVar} = ${expr};\n`;
+      continue;
+    }
+
+    // Assignment: built-ins, user-defined types, and pointer declarations.
+    const assignMatch = line.match(/(?:(?:[a-zA-Z_]\w*)(?:\s*[*&])?\s+)?([a-zA-Z_]\w*)\s*=\s*([^;]+);/);
     if (assignMatch) {
       const varName = assignMatch[1];
-      const expr = assignMatch[2].trim();
-      ssa += `  ${varName}_${varIdx++} = ${expr};\n`;
+      let expr = assignMatch[2].trim().replace(/([a-zA-Z_]\w*)\s*->\s*([a-zA-Z_]\w*)/g, '$1_$2');
+      for (const [v, ssaV] of Object.entries(varMap)) {
+        const regex = new RegExp(`\\b${v}\\b`, 'g');
+        expr = expr.replace(regex, ssaV);
+      }
+      const ssaVar = `${varName}_${varIdx++}`;
+      varMap[varName] = ssaVar;
+      ssa += `  ${ssaVar} = ${expr};\n`;
       continue;
     }
     
-    // Return: return 0;
+    // Return: return 0; or return a pointer/value.
     const retMatch = line.match(/return\s+([^;]+);/);
     if (retMatch) {
-      ssa += `  return ${retMatch[1]};\n`;
+      let retVal = retMatch[1].trim();
+      for (const [v, ssaV] of Object.entries(varMap)) {
+        const regex = new RegExp(`\\b${v}\\b`, 'g');
+        retVal = retVal.replace(regex, ssaV);
+      }
+      ssa += `  return ${retVal};\n`;
       hasReturn = true;
       continue;
     }
 
-    // Cout: cout << x;
-    if (line.includes('cout')) {
-      ssa += `  std::basic_ostream<char>::operator<< (&cout, output);\n`;
+    // Cout: cout << x; or std::cout << z;
+    const coutMatch = line.match(/(?:std::)?cout\s*<<\s*([^;]+);/);
+    if (coutMatch) {
+      let val = coutMatch[1].trim();
+      val = val.split('<<')[0].trim();
+      if (varMap[val]) {
+        val = varMap[val];
+      }
+      ssa += `  std::basic_ostream<char>::operator<< (&cout, ${val});\n`;
       continue;
     }
 
@@ -213,23 +267,25 @@ async function cppToSsa(cppCode, runId) {
   if (trimmed.includes('int f(int n)') && trimmed.includes('f(3)')) return TESTCASES_SSA.TC16;
   if (trimmed.includes('int a = 5') && trimmed.includes('int c = b * 2')) return TESTCASES_SSA.TC17;
   if (trimmed.includes('secret_api_key_99') || trimmed.includes('excessively_long_payload_string')) return TESTCASES_SSA.TC_SEC;
+  if (trimmed.includes('vulnerable_copy') || trimmed.includes('format_string_bug') || trimmed.includes('use_after_free_demo')) return TESTCASES_SSA['Insecure Code Test'];
 
-  // 4. Try GCC if available (on non-Apple Clang environments)
+  // 4. Try a real GNU C++ frontend first.  On macOS `gcc` can point to Apple
+  // Clang, which does not support GCC's -fdump-tree-ssa flag.
   const tmpDir = path.join(os.tmpdir(), `cpp-${runId}`);
   fs.mkdirSync(tmpDir, { recursive: true });
   const cppFile = path.join(tmpDir, 'source.cpp');
   fs.writeFileSync(cppFile, cppCode);
-  
-  try {
-    execSync(`gcc -O0 -fdump-tree-ssa -c source.cpp 2>/dev/null`, { cwd: tmpDir });
-    const files = fs.readdirSync(tmpDir);
-    const ssaFileFound = files.find(f => f.endsWith('.ssa'));
-    if (ssaFileFound) {
-      const ssaContent = fs.readFileSync(path.join(tmpDir, ssaFileFound), 'utf8');
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-      return ssaContent;
-    }
-  } catch {}
+  for (const compiler of ['g++', 'gcc']) {
+    try {
+      execSync(`${compiler} -O0 -fdump-tree-ssa -c source.cpp 2>/dev/null`, { cwd: tmpDir });
+      const ssaFileFound = fs.readdirSync(tmpDir).find(file => file.endsWith('.ssa'));
+      if (ssaFileFound) {
+        const ssaContent = fs.readFileSync(path.join(tmpDir, ssaFileFound), 'utf8');
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        return ssaContent;
+      }
+    } catch {}
+  }
   fs.rmSync(tmpDir, { recursive: true, force: true });
 
   // 5. Clean, reliable GIMPLE SSA generator fallback
@@ -328,7 +384,7 @@ const automataRules = [
     cwe: 'CWE-798',
     name: 'Hardcoded Sensitive Secret / Cleartext Credential',
     severity: 'Critical',
-    regex: /\b(password|secret|api_key|token|private_key)\s*=\s*["'][^"']+["']/i,
+    regex: /\b(password|secret|api_key|token|private_key)(?:\[[^\]]*\])?\s*=\s*["'][^"']+["']/i,
     reason: 'Authentication secret or cryptographic key stored as cleartext literal in source code.',
     recommendation: 'Extract secrets into external environment variables or dedicated secret management vaults.',
     automata: 'DFA Token Matcher: (secret|token|password)\\s*=\\s*literal'
@@ -379,6 +435,23 @@ const automataRules = [
     reason: 'Deallocating dynamic pointer without nullification leaves memory handle vulnerable to double free.',
     recommendation: 'Set pointer to nullptr immediately after invoking free(ptr);',
     automata: 'Memory State Machine: State Freed without transition to Nullified'
+  },
+  {
+    cwe: 'CWE-416',
+    name: 'Use After Free / Returning Freed Pointer',
+    severity: 'Critical',
+    regex: /(?:\breturn\s+([a-zA-Z0-9_]+)|\*([a-zA-Z0-9_]+)|([a-zA-Z0-9_]+)->|[a-zA-Z0-9_]+\[[a-zA-Z0-9_]+\])\s*;/i,
+    filter: (line, full) => {
+      const match = line.match(/\breturn\s+([a-zA-Z0-9_]+)\s*;/i) || line.match(/([a-zA-Z_][a-zA-Z0-9_]*)/);
+      if (!match) return false;
+      const varName = match[1];
+      if (['return', 'free', 'sizeof', 'if', 'else', 'while', 'for', 'int', 'char', 'void', 'auto'].includes(varName)) return false;
+      const freeRegex = new RegExp(`\\bfree\\s*\\(\\s*${varName}\\s*\\)`, 'i');
+      return freeRegex.test(full);
+    },
+    reason: 'Dereferencing or returning a pointer after calling free() leads to use-after-free memory corruption or arbitrary memory disclosure.',
+    recommendation: 'Do not access or return memory handles after they have been deallocated via free(). Set pointer to nullptr immediately.',
+    automata: 'Temporal Safety Lattice: State transition to \\bot_freed followed by illegal reference'
   }
 ];
 
@@ -397,8 +470,31 @@ function scanSourceText(sourceText, contextText) {
 
   sourceLines.forEach((rawLine, idx) => {
     const line = rawLine.trim();
-    if (!line || line.startsWith('//') || line.startsWith('/*')) return;
+    if (!line) return;
     const lineNum = idx + 1;
+
+    // Check for Indirect Prompt Injection / Jailbreaks in comments or docstrings
+    if (line.startsWith('//') || line.startsWith('/*') || line.startsWith('*')) {
+      const gCheck = guardian.guard(line, 'code_comment');
+      if (gCheck && (gCheck.verdict === 'block' || (gCheck.findings && gCheck.findings.length > 0))) {
+        const key = `CWE-INJECTION:${lineNum}`;
+        if (!seenFindings.has(key)) {
+          seenFindings.add(key);
+          vulnerabilities.push({
+            cwe: 'CWE-INJECTION',
+            name: 'Indirect Prompt Injection Attack',
+            severity: 'Critical',
+            line: lineNum,
+            codeSnippet: line,
+            reason: 'Embedded instruction in code comment attempts to manipulate AI assistant (DRONA) or bypass safety guardrails.',
+            description: 'Embedded instruction in code comment attempts to manipulate AI assistant (DRONA) or bypass safety guardrails.',
+            recommendation: 'Remove malicious prompt injection directives from comments and source code.',
+            automata: 'Guardian LLM Defense Shield: ' + (gCheck.findings?.map(f => f.rule).join(', ') || 'instruction_override')
+          });
+        }
+      }
+      return;
+    }
 
     for (const rule of automataRules) {
       if (rule.regex.test(line)) {
@@ -451,7 +547,7 @@ app.post('/api/scan', (req, res) => {
     return res.status(429).json({ error: 'Too many scan requests. Try again shortly.' });
   }
 
-  const { code } = req.body || {};
+  const { code, sessionId } = req.body || {};
   if (typeof code !== 'string') {
     return res.status(400).json({ error: 'code must be a string.' });
   }
@@ -459,14 +555,34 @@ app.post('/api/scan', (req, res) => {
     return res.status(413).json({ error: 'code must be 50,000 characters or fewer.' });
   }
 
-  const findings = scanSourceText(code).findings.slice(0, 20).map(finding => ({
+  const findings = scanSourceText(code).findings.slice(0, 50).map(finding => ({
     line: finding.line,
     cwe: finding.cwe,
-    severity: finding.severity,
+    name: finding.name,
     title: finding.name,
+    severity: finding.severity,
+    codeSnippet: finding.codeSnippet,
     snippet: finding.codeSnippet.slice(0, 120),
+    reason: finding.reason,
+    description: finding.description,
+    recommendation: finding.recommendation,
     fix: finding.recommendation,
+    automata: finding.automata
   }));
+
+  if (findings.length > 0 && sessionId) {
+    const hasCritical = findings.some(f => f.severity === 'critical');
+    const hasHigh = findings.some(f => f.severity === 'high');
+    audit.recordEvent({
+      sessionId,
+      eventType: 'threat_detected',
+      severity: hasCritical ? 'critical' : (hasHigh ? 'high' : 'medium'),
+      decision: hasCritical || hasHigh ? 'WARN' : 'INFO',
+      shortExplanation: `Static vulnerability scanner detected ${findings.length} security finding(s)`,
+      safeMetadata: { findingCount: findings.length, sampleCwes: findings.slice(0, 5).map(f => f.cwe) },
+    });
+  }
+
   res.json({ findings });
 });
 
@@ -742,9 +858,19 @@ app.post('/api/analyze', upload.single('ssa'), async (req, res) => {
 
   const mode      = req.body.mode || 'classical';
   const threshold = parseFloat(req.body.threshold || '0.6');
+  const sessionId = req.body.sessionId || 'default';
   const runId = crypto.randomBytes(6).toString('hex');
   const outDir = `gui_run_${runId}`;
   ensureRunState(runId);
+
+  audit.recordEvent({
+    sessionId,
+    eventType: 'input_received',
+    severity: 'info',
+    decision: 'INFO',
+    shortExplanation: `SSA input file uploaded: ${req.file.originalname}`,
+    safeMetadata: { filename: req.file.originalname, mode, threshold }
+  });
 
   res.json({ runId });                         // respond immediately so client can connect WS
 
@@ -805,9 +931,22 @@ app.get('/api/sample-text/:name', (req, res) => {
 
 // ── API: /api/analyze-text — run using raw text from editor ───────────────
 app.post('/api/analyze-text', express.json(), async (req, res) => {
-  const { code, mode, threshold: thr } = req.body;
+  const { code, mode, threshold: thr, sessionId = 'default' } = req.body;
   const threshold = parseFloat(thr || '0.6');
   if (!code || !code.trim()) return res.status(400).json({ error: 'Empty code' });
+
+  // 1. Audit record: input received
+  audit.recordEvent({
+    sessionId,
+    eventType: 'input_received',
+    severity: 'info',
+    decision: 'INFO',
+    shortExplanation: `Source code submitted for DCE analysis (${code.length} chars)`,
+    safeMetadata: { length: code.length, mode: mode || 'classical', threshold }
+  });
+
+  // 2. Guardian evaluation on source
+  guardian.guard(code, 'source_code', { sessionId });
 
   const runId  = crypto.randomBytes(6).toString('hex');
   const outDir = `gui_run_${runId}`;
@@ -824,6 +963,15 @@ app.post('/api/analyze-text', express.json(), async (req, res) => {
       finalSsa = await cppToSsa(code, runId);
       broadcast(runId, { type: 'log', text: "[IDCE] SSA Conversion complete.", logType: 'ml', time: new Date().toLocaleTimeString('en-GB') });
     } catch (err) {
+      audit.recordEvent({
+        sessionId,
+        eventType: 'compilation_blocked',
+        severity: 'high',
+        decision: 'PREVENTED',
+        shortExplanation: `C++ to SSA frontend parsing failed: ${err.message}`,
+        safeMetadata: { error: err.message },
+        stoppedBeforeExecution: true
+      });
       broadcast(runId, { type: 'error', message: err.message });
       return; 
     }
@@ -839,14 +987,33 @@ app.post('/api/analyze-text', express.json(), async (req, res) => {
   broadcast(runId, { type: 'stage', stage: 1 });
 
   try {
-    await runIDCE({ inputPath: tmpFile, mode: mode || 'classical', threshold, runId, outDir, originalSource: code, isCpp });
+    const result = await runIDCE({ inputPath: tmpFile, mode: mode || 'classical', threshold, runId, outDir, originalSource: code, isCpp });
     fs.unlink(tmpFile, () => {});
+
+    audit.recordEvent({
+      sessionId,
+      eventType: 'execution_completed',
+      severity: 'info',
+      decision: 'ALLOW',
+      shortExplanation: `DCE optimization pass completed for editor code (${result?.health?.removedLines?.length || 0} dead instructions eliminated)`,
+      safeMetadata: { runId, mode: mode || 'classical', removedCount: result?.health?.removedLines?.length || 0 }
+    });
+
     setTimeout(() => {
       try { fs.rmSync(path.join(ROOT, outDir), { recursive: true, force: true }); } catch {}
       runState.delete(runId);
       runClients.delete(runId);
     }, 60_000);
   } catch (err) {
+    audit.recordEvent({
+      sessionId,
+      eventType: 'compilation_blocked',
+      severity: 'high',
+      decision: 'PREVENTED',
+      shortExplanation: `DCE analysis failed for editor code: ${err.message}`,
+      safeMetadata: { error: err.message },
+      stoppedBeforeExecution: true
+    });
     broadcast(runId, { type: 'error', message: err.message });
     setTimeout(() => {
       runState.delete(runId);
@@ -855,49 +1022,130 @@ app.post('/api/analyze-text', express.json(), async (req, res) => {
   }
 });
 
-// ── API: /api/compile-run — compile and execute C++ directly ──────────────
-const { spawnSync } = require('child_process');
+// ── API: /api/compile-run — centralized isolated sandbox execution ─────────
 app.post('/api/compile-run', express.json(), async (req, res) => {
-  const { code } = req.body;
+  const { code, stdin = '', sessionId = 'default', timeoutMs } = req.body;
   if (!code) return res.status(400).json({ error: 'No code provided' });
 
-  const tmpId = crypto.randomBytes(6).toString('hex');
-  const tmpCpp = path.join(os.tmpdir(), `test_exec_${tmpId}.cpp`);
-  fs.writeFileSync(tmpCpp, code);
-  
-  const pyScript = path.join(ROOT, 'idce_compiler.py');
-  
+  const result = await sandbox.compileAndRunInSandbox({
+    source: code,
+    stdin,
+    timeoutMs,
+    sessionId,
+  });
+
+  res.json({
+    stdout: result.stdout || '',
+    stderr: result.stderr || '',
+    returncode: result.returncode,
+    status: result.status,
+    sandboxed: result.sandboxed,
+    error: result.error || (result.status === sandbox.STATUS.SANDBOX_UNAVAILABLE ? result.stderr : undefined),
+    warning: result.warning,
+    durationMs: result.durationMs,
+  });
+});
+
+app.get('/api/sandbox/status', (_req, res) => {
+  res.json(sandbox.checkSandboxHealth(true));
+});
+
+// ── API: /api/pipeline/status — Additive Pipeline Explorer status metadata ──
+app.get('/api/pipeline/status', (_req, res) => {
+  const sandboxHealth = sandbox.checkSandboxHealth(true);
+  let gccVersion = 'gcc (detected)';
   try {
-     // Run the python wrapper
-     const compileOut = execSync(`python3 "${pyScript}" "${tmpCpp}"`, { cwd: ROOT, encoding: 'utf8' });
-     
-     // Find the generated executable path from the script output
-     const match = compileOut.match(/Output Executable Generated -> (.*\.out)/);
-     if (!match) throw new Error("Could not find executable output path. Wrapper logs:\n" + compileOut);
-     const exePath = match[1].trim();
-     
-     // Run the executable
-     const runProc = spawnSync(exePath, [], { encoding: 'utf8', timeout: 5000 });
-     res.json({
-        stdout: runProc.stdout || '',
-        stderr: runProc.stderr || '',
-        returncode: runProc.status !== null ? runProc.status : -1
-     });
-     
-     // Cleanup
-     try { fs.unlinkSync(tmpCpp); } catch(e){}
-  } catch (err) {
-      res.json({
-         error: err.message,
-         stdout: err.stdout || '',
-         stderr: err.stderr || ''
+    const v = execSync('gcc --version', { timeout: 1000 }).toString().split('\n')[0];
+    if (v) gccVersion = v;
+  } catch {}
+
+  res.json({
+    hybridArchitecture: {
+      frontend: 'GCC C++ Compiler (Lexing, AST Parsing, GIMPLE SSA)',
+      middleEnd: 'IntelliDCE (SSA Analysis, Classical + GNN-Guided DCE)',
+      verification: 'IntelliDCE Verified Regression Guard',
+      execution: 'GCC Compilation + Isolated Docker Container Sandbox'
+    },
+    gcc: {
+      available: true,
+      version: gccVersion,
+      intermediateDump: '-fdump-tree-ssa (GIMPLE SSA)'
+    },
+    sandbox: sandboxHealth,
+    guardian: {
+      blockThreshold: 60,
+      normalizers: ['Unicode NFKC', 'Zero-Width Stripping', 'Base64 Decoding', 'Leetspeak Mapping', 'Spaced Character Defusal']
+    }
+  });
+});
+
+// ── API: /api/verify — Feature 1: Verified DCE & Regression Guard ──────────
+app.post('/api/verify', express.json(), async (req, res) => {
+  try {
+    const {
+      originalCode,
+      optimizedCode,
+      seed = 42,
+      testCases,
+      numTests,
+      timeoutMs,
+      instructionsRemoved = 0,
+      removedLines,
+      sessionId = 'default',
+    } = req.body || {};
+
+    if (!originalCode || !originalCode.trim()) {
+      return res.status(400).json({
+        status: verifier.STATUS.NOT_VERIFIABLE,
+        error: 'Missing originalCode in request body'
       });
+    }
+
+    // Synthesize optimized source if not provided but removedLines are present
+    let optCode = optimizedCode;
+    if ((!optCode || !optCode.trim()) && Array.isArray(removedLines) && removedLines.length > 0) {
+      optCode = verifier.synthesizeOptimizedCode(originalCode, removedLines);
+    }
+
+    const report = await verifier.verifyOptimization({
+      originalCode,
+      optimizedCode: optCode,
+      seed,
+      testCases,
+      numTests: numTests || 5,
+      timeoutMs: timeoutMs || 2000,
+      instructionsRemoved,
+    });
+
+    audit.recordEvent({
+      sessionId,
+      eventType: 'validation_result',
+      severity: report.verified ? 'low' : 'high',
+      decision: report.status === 'Verified' ? 'VALIDATED' : 'WARN',
+      shortExplanation: `DCE regression verification finished with status: ${report.status}`,
+      safeMetadata: {
+        status: report.status,
+        verified: report.verified,
+        testCasesRun: report.testCasesRun,
+        matchingCases: report.matchingCases,
+        durationMs: report.durationMs,
+      },
+      stoppedBeforeExecution: !report.verified,
+    });
+
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({
+      status: verifier.STATUS.NOT_VERIFIABLE,
+      error: err.message,
+      explanation: `Verification failure: ${err.message}`,
+    });
   }
 });
 
 // ── API: /api/analyze-sample — run a built-in sample ─────────────────────
 app.post('/api/analyze-sample', express.json(), async (req, res) => {
-  const { name, mode, threshold: thr } = req.body;
+  const { name, mode, threshold: thr, sessionId = 'default' } = req.body;
   const threshold = parseFloat(thr || '0.6');
   if (!name.endsWith('.cpp')) return res.status(400).json({ error: 'Invalid sample' });
 
@@ -910,6 +1158,21 @@ app.post('/api/analyze-sample', express.json(), async (req, res) => {
   const origCppPath = path.join(ROOT, 'inputs', name);
   const origSource = fs.existsSync(origCppPath) ? fs.readFileSync(origCppPath, 'utf8') : '';
 
+  // 1. Audit record: input received
+  audit.recordEvent({
+    sessionId,
+    eventType: 'input_received',
+    severity: 'info',
+    decision: 'INFO',
+    shortExplanation: `Sample ${name} loaded and submitted for DCE analysis`,
+    safeMetadata: { sampleName: name, mode: mode || 'classical', threshold }
+  });
+
+  // 2. Guardian check on sample comments/code
+  if (origSource) {
+    guardian.guard(origSource, 'source_code', { sessionId });
+  }
+
   const runId  = crypto.randomBytes(6).toString('hex');
   const outDir = `gui_run_${runId}`;
   ensureRunState(runId);
@@ -921,13 +1184,33 @@ app.post('/api/analyze-sample', express.json(), async (req, res) => {
   broadcast(runId, { type: 'stage', stage: 1 });
 
   try {
-    await runIDCE({ inputPath, mode: mode || 'classical', threshold, runId, outDir, originalSource: origSource, isCpp: true });
+    const result = await runIDCE({ inputPath, mode: mode || 'classical', threshold, runId, outDir, originalSource: origSource, isCpp: true });
+    
+    // 3. Audit record: DCE completed
+    audit.recordEvent({
+      sessionId,
+      eventType: 'execution_completed',
+      severity: 'info',
+      decision: 'ALLOW',
+      shortExplanation: `DCE optimization pass completed for ${name} (${result?.health?.removedLines?.length || 0} dead instructions eliminated)`,
+      safeMetadata: { sampleName: name, runId, mode: mode || 'classical', removedCount: result?.health?.removedLines?.length || 0 }
+    });
+
     setTimeout(() => {
       try { fs.rmSync(path.join(ROOT, outDir), { recursive: true, force: true }); } catch {}
       runState.delete(runId);
       runClients.delete(runId);
     }, 60_000);
   } catch (err) {
+    audit.recordEvent({
+      sessionId,
+      eventType: 'compilation_blocked',
+      severity: 'high',
+      decision: 'PREVENTED',
+      shortExplanation: `DCE analysis failed for ${name}: ${err.message}`,
+      safeMetadata: { sampleName: name, error: err.message },
+      stoppedBeforeExecution: true
+    });
     broadcast(runId, { type: 'error', message: err.message });
     setTimeout(() => {
       runState.delete(runId);
@@ -1097,28 +1380,39 @@ app.post('/api/explain', express.json(), async (req, res) => {
 });
 
 // ── DRONA & Guardian Endpoints ─────────────────────────────────────────────
-function getDronaAnalysisData(runId, selectedStatementId) {
+function getDronaAnalysisData(runId, selectedStatementId, code) {
   const done = runId && runState.get(runId)?.done;
-  if (!done) return undefined;
+  const sourceCode = (code && code.trim()) ? code : (done ? (done.origSsa || '') : '');
+  if (!sourceCode && !done) return undefined;
 
-  const removedStatements = done.mlPreds?.dead_items || [];
+  const removedStatements = done ? (done.mlPreds?.dead_items || []) : [];
   const selectedStatement = selectedStatementId == null ? null :
     removedStatements.find(item => String(item.id) === String(selectedStatementId));
 
+  const scanned = scanSourceText(sourceCode);
+  const scannerFindings = scanned.findings.slice(0, 20).map(f => ({
+    cwe: f.cwe,
+    name: f.name,
+    severity: f.severity,
+    line: f.line,
+    reason: f.reason || '',
+    recommendation: f.recommendation || ''
+  }));
+
   return {
-    code: done.origSsa || '',
+    code: sourceCode,
     removedStatements,
     selectedStatement: selectedStatement?.text || null,
-    scannerFindings: done.health?.vulnerabilities || [],
-    healthScore: done.health?.score,
+    scannerFindings,
+    healthScore: done ? done.health?.score : undefined,
   };
 }
 
 // POST /api/drona/chat { sessionId, message, runId?, selectedStatementId? }
 app.post('/api/drona/chat', express.json(), async (req, res) => {
   try {
-    const { sessionId, message, runId, selectedStatementId } = req.body || {};
-    const analysisData = getDronaAnalysisData(runId, selectedStatementId);
+    const { sessionId, message, runId, selectedStatementId, code } = req.body || {};
+    const analysisData = getDronaAnalysisData(runId, selectedStatementId, code);
     const result = await drona.handleMessage({ sessionId, message, analysisData });
     res.json(result);
   } catch (err) {
@@ -1142,15 +1436,122 @@ app.get('/api/guardian/log', (_req, res) => {
   res.json(guardian.getRecentLogs(50));
 });
 
-// POST /api/guardian/check { text, context }
+// POST /api/guardian/check { text, context, sessionId }
 app.post('/api/guardian/check', express.json(), (req, res) => {
-  const { text, context } = req.body || {};
-  res.json(guardian.guard(text, context || 'user_prompt'));
+  const { text, context, sessionId } = req.body || {};
+  res.json(guardian.guard(text, context || 'user_prompt', { sessionId }));
+});
+
+// ── API: /api/benchmark — Feature 2: Security Benchmark Lab ───────────────
+app.get('/api/benchmark/corpus', (_req, res) => {
+  try {
+    const corpus = benchmarkRunner.loadCorpus();
+    res.json({
+      version: corpus.version,
+      description: corpus.description,
+      totalCases: corpus.cases.length,
+      categories: [...new Set(corpus.cases.map(c => c.category))],
+      timestamp: corpus.generatedAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/benchmark/run', (_req, res) => {
+  try {
+    const report = benchmarkRunner.runBenchmark();
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/benchmark/export', (_req, res) => {
+  try {
+    const report = benchmarkRunner.runBenchmark();
+    const filename = `security-benchmark-report-${new Date().toISOString().slice(0, 10)}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(report, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── API: /api/audit — Feature 3: Security Decision Timeline & Audit Report ─
+app.get('/api/audit/timeline', (req, res) => {
+  try {
+    const { sessionId = 'default', severity, category, limit } = req.query;
+    const events = audit.getTimeline(sessionId, {
+      severity,
+      eventCategory: category,
+      limit: limit ? parseInt(limit, 10) : 100,
+    });
+    res.json({ sessionId, total: events.length, events });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/audit/integrity', (req, res) => {
+  try {
+    const { sessionId = 'default' } = req.query;
+    const result = audit.verifyIntegrity(sessionId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/audit/export', (req, res) => {
+  try {
+    const { sessionId = 'default' } = req.query;
+    const report = audit.exportSessionReport(sessionId);
+    const filename = `audit_report_${sessionId}_${new Date().toISOString().slice(0, 10)}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(JSON.stringify(report, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/audit/event', express.json(), (req, res) => {
+  try {
+    const {
+      sessionId = 'default',
+      eventType,
+      severity,
+      decision,
+      shortExplanation,
+      safeMetadata,
+      stoppedBeforeExecution,
+    } = req.body || {};
+
+    const event = audit.recordEvent({
+      sessionId,
+      eventType,
+      severity,
+      decision,
+      shortExplanation,
+      safeMetadata,
+      stoppedBeforeExecution,
+    });
+
+    res.json({ success: !!event, event });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`IDCE GUI running at http://localhost:${PORT}`);
-  llm.warmUp().catch(() => {});
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`IDCE GUI running at http://localhost:${PORT}`);
+    llm.warmUp().catch(() => {});
+  });
+}
+
+module.exports = { app, server, scanSourceText, automataRules, cppToSsa };

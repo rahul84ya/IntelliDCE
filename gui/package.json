@@ -5,7 +5,8 @@
     "main": "server.js",
     "scripts": {
         "start": "lsof -ti:3000 | xargs kill -9 2>/dev/null; node server.js",
-        "dev": "node server.js"
+        "dev": "node server.js",
+        "test": "node --test --test-concurrency=1 tests/drona.test.js tests/guardian.test.js tests/llm.test.js tests/verifier.test.js tests/benchmark.test.js tests/audit.test.js tests/sandbox.test.js tests/insecure_code_testcase.test.js tests/pipeline_explorer.test.js tests/navigation.test.js"
     },
     "dependencies": {
         "dotenv": "^17.4.2",

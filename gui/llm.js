@@ -14,7 +14,7 @@ const OLLAMA_URL   = process.env.OLLAMA_URL || 'http://localhost:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || '';  // empty = auto-detect
 const TIMEOUT_MS   = 60000;
 const TEMPERATURE  = 0.2;
-const NUM_CTX      = 4096;
+const NUM_CTX      = 8192;
 
 // ── Typed error classes ─────────────────────────────────────────────────
 

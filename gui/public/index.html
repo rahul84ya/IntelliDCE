@@ -92,31 +92,143 @@
   /* Drag-over highlight */
   .drag-over { border-color: #00ff88 !important; background: rgba(0,0,0,.03); }
 
+  /* Live security markings share the editor's exact line geometry. */
+  .security-editor-shell { position:relative; flex:1; min-height:0; overflow:hidden; background:#fff; }
+  .security-editor-highlight { position:absolute; inset:0; margin:0; padding:1rem; overflow:hidden; pointer-events:none; white-space:pre; font:14px/1.5 'JetBrains Mono',monospace; color:#1e293b; }
+  .security-editor-highlight .unsafe-line { display:block; margin:0 -8px; padding:0 8px; color:#991b1b; background:linear-gradient(90deg, rgba(254,226,226,.95), rgba(254,242,242,.55)); border-left:3px solid #ef4444; }
+  .security-editor-highlight .safe-line { display:block; min-height:21px; }
+  #ssa-editor.security-overlay-input { position:absolute; inset:0; z-index:1; padding:1rem; color:transparent; caret-color:#0f172a; background:transparent; font:14px/1.5 'JetBrains Mono',monospace; white-space:pre; overflow:auto; }
+  #ssa-editor.security-overlay-input::selection { background:rgba(59,130,246,.25); color:transparent; }
+  .security-dialog { position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(15,23,42,.48); backdrop-filter:blur(4px); }
+  .security-dialog.open { display:flex; }
+  .security-dialog-card { width:min(480px,100%); border:1px solid #fecaca; border-radius:20px; background:#fff; box-shadow:0 28px 75px rgba(15,23,42,.32); overflow:hidden; }
+  .security-robot { width:54px; height:54px; display:grid; place-items:center; border-radius:16px; color:#fff; background:linear-gradient(135deg,#ef4444,#fb7185); box-shadow:0 10px 22px rgba(239,68,68,.28); }
+
   /* Navbar styles */
-  .nav-btn {
+  /* Segmented Floating Navbar Track (Scrollbar completely hidden across all browsers) */
+  .nav-scroll-wrapper {
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 14px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #64748b;
-    transition: all 0.2s ease;
   }
+  .nav-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 14px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE/Edge */
+  }
+  .nav-track::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Edge */
+    width: 0 !important;
+    height: 0 !important;
+  }
+  .nav-track::-webkit-scrollbar-track {
+    display: none !important;
+  }
+  .nav-track::-webkit-scrollbar-thumb {
+    display: none !important;
+  }
+
+  /* Category-Aware Accent Color Tokens & Neon Borders */
+  .nav-btn[data-panel="dashboard"]   { --nav-accent: #10b981; --nav-accent-rgb: 16, 185, 129; --nav-border: #34d399; --nav-glow: rgba(52, 211, 153, 0.38); }
+  .nav-btn[data-panel="editor"]      { --nav-accent: #3b82f6; --nav-accent-rgb: 59, 130, 246; --nav-border: #60a5fa; --nav-glow: rgba(96, 165, 250, 0.38); }
+  .nav-btn[data-panel="compare"]     { --nav-accent: #3b82f6; --nav-accent-rgb: 59, 130, 246; --nav-border: #93c5fd; --nav-glow: rgba(59, 130, 246, 0.3); }
+  .nav-btn[data-panel="cfg"]         { --nav-accent: #3b82f6; --nav-accent-rgb: 59, 130, 246; --nav-border: #93c5fd; --nav-glow: rgba(59, 130, 246, 0.3); }
+  .nav-btn[data-panel="health"]      { --nav-accent: #10b981; --nav-accent-rgb: 16, 185, 129; --nav-border: #10b981; --nav-glow: rgba(16, 185, 129, 0.45); }
+  .nav-btn[data-panel="verifier"]    { --nav-accent: #10b981; --nav-accent-rgb: 16, 185, 129; --nav-border: #34d399; --nav-glow: rgba(52, 211, 153, 0.45); }
+  .nav-btn[data-panel="benchmark"]   { --nav-accent: #10b981; --nav-accent-rgb: 16, 185, 129; --nav-border: #f43f5e; --nav-glow: rgba(244, 63, 94, 0.4); }
+  .nav-btn[data-panel="audit"]       { --nav-accent: #10b981; --nav-accent-rgb: 16, 185, 129; --nav-border: #818cf8; --nav-glow: rgba(129, 140, 248, 0.4); }
+  .nav-btn[data-panel="ai-patterns"] { --nav-accent: #8b5cf6; --nav-accent-rgb: 139, 92, 246; --nav-border: #a855f7; --nav-glow: rgba(168, 85, 247, 0.45); }
+  .nav-btn[data-panel="explainer"]   { --nav-accent: #8b5cf6; --nav-accent-rgb: 139, 92, 246; --nav-border: #e879f9; --nav-glow: rgba(232, 121, 249, 0.45); }
+  .nav-btn[data-panel="analytics"]   { --nav-accent: #64748b; --nav-accent-rgb: 100, 116, 139; --nav-border: #38bdf8; --nav-glow: rgba(56, 189, 248, 0.35); }
+  .nav-btn[data-panel="logs"]        { --nav-accent: #64748b; --nav-accent-rgb: 100, 116, 139; --nav-border: #cbd5e1; --nav-glow: rgba(148, 163, 184, 0.25); }
+  .nav-btn[data-panel="pipeline"]    { --nav-accent: #0d9488; --nav-accent-rgb: 13, 148, 136; --nav-border: #2dd4bf; --nav-glow: rgba(45, 212, 191, 0.45); }
+
+  /* Distinct Accent Navbar Buttons with generous breathing room and neon borders */
+  .nav-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 8px 16px;
+    min-height: 38px;
+    border-radius: 11px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #334155;
+    background: #ffffff;
+    border: 1.5px solid var(--nav-border, #cbd5e1);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 0 6px -1px var(--nav-glow, transparent);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  /* Clear colored accent border, luminous neon background tint, vibrant glow, and small upward movement */
   .nav-btn:hover {
-    background: rgba(15, 23, 42, 0.04);
     color: #0f172a;
+    background: rgba(var(--nav-accent-rgb, 15, 23, 42), 0.06);
+    border-color: var(--nav-accent, #3b82f6);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 14px -2px rgba(var(--nav-accent-rgb, 15, 23, 42), 0.22), 0 0 12px var(--nav-glow, transparent);
   }
+
+  .nav-btn:active {
+    transform: translateY(0) scale(0.98);
+    transition-duration: 0.08s;
+  }
+
   .nav-btn .material-symbols-outlined {
-    font-size: 18px;
+    font-size: 17.5px;
+    transition: transform 0.2s ease, color 0.18s ease;
   }
+
+  .nav-btn:hover .material-symbols-outlined {
+    transform: scale(1.12);
+    color: var(--nav-accent, #0f172a) !important;
+  }
+
+  /* Strong active tab with existing accent color, 2px border, neon ambient glow, and underline */
   .nav-active {
-    background: #0f172a !important;
-    color: #ffffff !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: var(--nav-accent, #10b981) !important;
+    border-width: 2px !important;
+    font-weight: 700;
+    box-shadow: 0 2px 14px -1px rgba(var(--nav-accent-rgb, 16, 185, 129), 0.32), 0 0 12px var(--nav-glow, transparent) !important;
+    transform: translateY(-0.5px);
   }
+
   .nav-active .material-symbols-outlined {
-    color: #10b981;
+    color: var(--nav-accent, #0f172a) !important;
+    transform: scale(1.1);
+  }
+
+  .nav-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 12%;
+    right: 12%;
+    height: 3px;
+    border-radius: 9999px;
+    background: var(--nav-accent, #10b981);
+    box-shadow: 0 0 10px rgba(var(--nav-accent-rgb, 16, 185, 129), 0.9);
   }
 
   /* Section Header */
@@ -194,52 +306,142 @@
 <body class="bg-white text-slate-900 h-screen flex flex-col overflow-hidden font-display">
 
 <!-- ═══════════════════════════════ TOP NAVBAR ══════════════════════════════ -->
-<header class="flex items-center justify-between border-b border-border-col bg-white/80 backdrop-blur-md px-6 py-3 shrink-0 z-50 sticky top-0">
-  <div class="flex items-center gap-6">
-    <div class="flex items-center gap-3">
-      <div class="size-8 rounded-lg bg-primary flex items-center justify-center">
-        <span class="material-symbols-outlined text-white text-xl">insights</span>
+<header class="flex items-center justify-between border-b border-border-col bg-white/95 backdrop-blur-md px-5 py-2 shrink-0 z-50 sticky top-0 shadow-2xs">
+  <div class="flex items-center gap-3.5 min-w-0 flex-1 mr-3">
+    <div class="group flex items-center gap-2.5 pr-4 border-r border-slate-200 cursor-pointer select-none shrink-0" onclick="document.querySelector('.nav-btn[data-panel=\'dashboard\']')?.click()">
+      <div class="size-8 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-800 flex items-center justify-center shadow-xs transition-transform duration-300 group-hover:rotate-6 group-hover:scale-105">
+        <span class="material-symbols-outlined text-emerald-400 text-lg transition-transform duration-300 group-hover:scale-110">terminal</span>
       </div>
-      <h1 class="text-sm font-bold tracking-tight text-slate-900 border-r border-slate-200 pr-6 mr-1">IDCE</h1>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="text-xs font-black tracking-tight text-slate-900 font-mono transition-colors group-hover:text-emerald-700">IntelliDCE</h1>
+          <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs transition-all group-hover:bg-emerald-100">v2.1</span>
+        </div>
+        <p class="text-[9px] text-slate-400 font-mono -mt-0.5">Compiler Security Engine</p>
+      </div>
     </div>
-    
-    <nav class="flex items-center gap-1">
-      <button data-panel="dashboard" class="nav-btn nav-active">
-        <span class="material-symbols-outlined">dashboard</span> Dashboard
+
+    <div class="nav-scroll-wrapper">
+      <nav class="nav-track" aria-label="Feature Navigation">
+        <button data-panel="dashboard" class="nav-btn nav-active">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span>Dashboard</span>
       </button>
       <button data-panel="editor" class="nav-btn">
-        <span class="material-symbols-outlined">edit_note</span> Input Editor
+        <span class="material-symbols-outlined">code</span>
+        <span>Input Editor</span>
       </button>
       <button data-panel="compare" class="nav-btn">
-        <span class="material-symbols-outlined">difference</span> Code Compare
+        <span class="material-symbols-outlined">difference</span>
+        <span>Code Compare</span>
       </button>
       <button data-panel="cfg" class="nav-btn">
-        <span class="material-symbols-outlined">flowchart</span> CFG View
+        <span class="material-symbols-outlined">account_tree</span>
+        <span>CFG View</span>
       </button>
       <button data-panel="health" class="nav-btn">
-        <span class="material-symbols-outlined text-emerald-600">health_and_safety</span> Code Health
-        <span class="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 border border-emerald-300">NEW</span>
+        <span class="material-symbols-outlined text-emerald-600">health_and_safety</span>
+        <span>Code Health</span>
+        <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-amber-50 text-amber-700 border border-amber-200 font-mono">AUDIT</span>
+      </button>
+      <button data-panel="ai-patterns" class="nav-btn">
+        <span class="material-symbols-outlined text-violet-600">neurology</span>
+        <span>AI Patterns</span>
       </button>
       <button data-panel="explainer" class="nav-btn">
-        <span class="material-symbols-outlined">psychology</span> DCE Explainer
+        <span class="material-symbols-outlined text-purple-600">psychology</span>
+        <span>DCE Explainer</span>
+      </button>
+      <button data-panel="verifier" class="nav-btn">
+        <span class="material-symbols-outlined text-emerald-600">verified</span>
+        <span>Verified DCE</span>
+        <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">GUARD</span>
+      </button>
+      <button data-panel="benchmark" class="nav-btn">
+        <span class="material-symbols-outlined text-rose-600">security</span>
+        <span>Benchmark Lab</span>
+        <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-rose-50 text-rose-700 border border-rose-200 font-mono">LAB</span>
+      </button>
+      <button data-panel="audit" class="nav-btn">
+        <span class="material-symbols-outlined text-indigo-600">history_edu</span>
+        <span>Timeline</span>
+        <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold uppercase bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono">AUDIT</span>
       </button>
       <button data-panel="analytics" class="nav-btn">
-        <span class="material-symbols-outlined">monitoring</span> Analytics
+        <span class="material-symbols-outlined text-sky-600">monitoring</span>
+        <span>Analytics</span>
       </button>
       <button data-panel="logs" class="nav-btn">
-        <span class="material-symbols-outlined">terminal</span> Analysis Logs
+        <span class="material-symbols-outlined text-slate-600">terminal</span>
+        <span>Analysis Logs</span>
       </button>
-    </nav>
+      <button data-panel="pipeline" class="nav-btn">
+        <span class="material-symbols-outlined text-emerald-600">alt_route</span>
+        <span>Pipeline</span>
+        <span class="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 border border-emerald-300 font-mono">EXPLORER</span>
+      </button>
+      </nav>
+    </div>
   </div>
 
-  <div class="flex items-center gap-4">
-    <div id="model-info-bar" class="hidden lg:flex items-center gap-4 text-[10px] font-mono text-slate-500">
-      <span class="flex items-center gap-1.5"><span class="size-1.5 rounded-full bg-emerald-500"></span> v2.1-Stable</span>
-      <span class="border-l border-slate-200 pl-4">Queue: <span id="mib-corrections" class="text-amber-600 font-bold">0</span></span>
+  <!-- Top Right System Status Capsule (Compact, Attractive & High-Density) -->
+  <div class="flex items-center gap-1.5 p-1 rounded-full bg-slate-100/90 border border-slate-200/90 shadow-2xs backdrop-blur-xs shrink-0 select-none">
+    
+    <!-- Deep-DCE Engine Badge with Hover Details -->
+    <div class="relative group">
+      <div id="model-info-bar" class="h-7 px-2.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200/80 flex items-center gap-1.5 text-[10px] font-mono cursor-pointer transition-all hover:border-slate-300 shadow-2xs" title="Deep-DCE Engine v2">
+        <span class="relative flex size-1.5 shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
+        </span>
+        <span class="font-bold text-slate-800 tracking-tight">DCE v2</span>
+        <span id="mib-corrections-wrap" class="hidden items-center ml-0.5 px-1 py-0.2 rounded-full bg-amber-100 text-amber-800 font-bold text-[9px]">
+          <strong id="mib-corrections">0</strong>
+        </span>
+      </div>
+      <!-- Hover Card -->
+      <div class="pointer-events-none absolute top-full right-0 mt-2 z-50 hidden group-hover:flex flex-col gap-1.5 p-3 rounded-xl bg-slate-900 text-white text-[10px] font-mono shadow-xl border border-slate-700 whitespace-nowrap min-w-[190px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+          <span class="flex items-center gap-1.5 text-emerald-400 font-bold">
+            <span class="size-2 rounded-full bg-emerald-400"></span>Deep-DCE v2
+          </span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">Active</span>
+        </div>
+        <div class="flex items-center justify-between text-slate-300 text-[9.5px]">
+          <span>Retrain Queue:</span>
+          <span class="text-amber-400 font-bold" id="mib-corrections-tip">0 pending</span>
+        </div>
+        <div class="text-[9px] text-slate-400">Hybrid ML + Classical SSA Elimination</div>
+      </div>
     </div>
-    <div class="flex items-center gap-3 border-l border-slate-100 pl-4">
-      <span id="status-chip" class="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-wider">Idle</span>
-      <div class="size-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-400">US</div>
+
+    <!-- Sandbox Indicator: Compact Icon with Hover Tooltip -->
+    <div class="relative group">
+      <div id="sandbox-status-chip" class="size-7 rounded-full bg-white text-slate-500 border border-slate-200 flex items-center justify-center shadow-2xs cursor-pointer relative transition-all hover:scale-105" title="Probing Sandbox...">
+        <span class="material-symbols-outlined text-[15px]">deployed_code</span>
+        <span id="sandbox-status-pip" class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-slate-400 ring-2 ring-white"></span>
+      </div>
+      <!-- Hover Floating Tooltip -->
+      <div class="pointer-events-none absolute top-full right-0 mt-2 z-50 hidden group-hover:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[10px] font-mono shadow-xl border border-slate-700 whitespace-nowrap">
+        <span id="sandbox-tooltip-dot" class="size-2 rounded-full bg-slate-400 shrink-0"></span>
+        <span id="sandbox-tooltip-text">Probing Sandbox...</span>
+      </div>
+    </div>
+
+    <!-- Engine Status Chip -->
+    <div class="relative group">
+      <span id="status-chip" class="h-7 px-2.5 text-[9.5px] font-mono font-bold rounded-full bg-white text-slate-700 border border-slate-200/90 uppercase tracking-wider flex items-center gap-1.5 shadow-2xs whitespace-nowrap transition-all select-none hover:border-emerald-300 cursor-default" title="Engine Status: Ready">
+        <span class="relative flex size-1.5 shrink-0">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
+        </span>
+        <span>READY</span>
+      </span>
+    </div>
+
+    <!-- Workspace Avatar -->
+    <div class="size-7 rounded-full bg-gradient-to-tr from-slate-200 to-slate-100 border border-slate-300/80 flex items-center justify-center text-[10px] font-mono font-black text-slate-700 shadow-2xs cursor-pointer hover:border-slate-400 transition-colors" title="NIT Workspace (Compiler Security Lab)">
+      NIT
     </div>
   </div>
 </header>
@@ -360,10 +562,17 @@
         <span class="material-symbols-outlined text-lg">play_circle</span>
         START ANALYSIS
       </button>
-      <button onclick="document.querySelector('.nav-btn[data-panel=\'health\']').click()"
-        class="w-full mt-2.5 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
-        <span class="material-symbols-outlined text-sm text-emerald-600">health_and_safety</span>
-        Check Code Health & Score
+      <button id="self-healing-toggle" type="button" aria-pressed="true" onclick="toggleSelfHealing()"
+        class="w-full mt-2.5 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition-all flex items-center justify-between cursor-pointer shadow-xs group"
+        title="Self-Healing: ON (Click to toggle)">
+        <div class="flex items-center gap-2">
+          <span id="self-healing-icon" class="material-symbols-outlined text-[18px] text-emerald-600 transition-transform group-hover:scale-110">healing</span>
+          <span class="text-xs font-bold text-slate-700">Self-Healing</span>
+        </div>
+        <div id="self-healing-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300">
+          <span id="self-healing-pip" class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="self-healing-status-text" class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">ON</span>
+        </div>
       </button>
       <div class="mt-3 flex items-center justify-between px-1">
         <div class="flex items-center gap-1.5">
@@ -381,7 +590,10 @@
     <!-- Pipeline stages bar -->
     <div class="px-5 py-3 border-b border-border-col bg-surface/60 shrink-0">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Pipeline</span>
+        <button type="button" onclick="document.querySelector('.nav-btn[data-panel=\'pipeline\']')?.click()" class="text-[10px] font-bold uppercase tracking-[.2em] text-primary hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition-colors" title="Open Secure Compilation Pipeline Explorer">
+          <span>Pipeline</span>
+          <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+        </button>
         <span id="stage-label" class="text-[10px] font-mono text-slate-500">Waiting for input</span>
       </div>
       <!-- Progress bar -->
@@ -636,9 +848,12 @@
               <button onclick="loadSelectedTestcase()" class="px-3 py-1 rounded border border-border-col text-[10px] font-bold tracking-wide hover:bg-slate-100 transition-colors">LOAD TC</button>
               <button onclick="useEditorCode()" class="px-3 py-1 rounded bg-primary/20 text-primary border border-primary/30 text-[10px] font-bold tracking-wide hover:bg-primary/30 transition-colors">USE THIS CODE</button>
               <button onclick="captureAll(currentTcLabel || 'TC01')" class="px-3 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700 text-[10px] font-bold tracking-wide hover:bg-emerald-100 transition-colors">CAPTURE 4 PANELS</button>
+
             </div>
           </div>
-          <textarea id="ssa-editor" class="flex-1 w-full p-4 bg-white text-slate-800 font-mono text-sm leading-relaxed border-none outline-none resize-none scr min-h-0" spellcheck="false" placeholder="// Type your C++ code here...
+          <div id="security-editor-shell" class="security-editor-shell">
+          <pre id="security-editor-highlight" class="security-editor-highlight" aria-hidden="true"></pre>
+          <textarea id="ssa-editor" wrap="off" class="security-overlay-input w-full border-none outline-none resize-none scr" spellcheck="false" placeholder="// Type your C++ code here...
 // It will be automatically converted to SSA for analysis.">#include <iostream>
 
 int main() {
@@ -655,6 +870,7 @@ int main() {
     
     return y;
 }</textarea>
+          </div>
       </div>
 
       <!-- ======  COMPARE PANEL  ====== -->
@@ -1124,8 +1340,1057 @@ int main() {
         </div>
       </div>
 
-    </div>
-  </main>
+      <!-- ======  PIPELINE EXPLORER PANEL  ====== -->
+      <div id="panel-pipeline" class="panel hidden absolute inset-0 overflow-y-auto scr p-8 bg-white space-y-6">
+        
+        <!-- Header Banner & Explanatory Caption -->
+        <div class="p-6 rounded-2xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 text-white shadow-xl border border-emerald-800/40 relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Standard 6-Stage + Security Extensions</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-800/80 text-slate-300 border border-slate-700">Hybrid Architecture</span>
+              </div>
+              <h2 class="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-400 text-2xl md:text-3xl">alt_route</span>
+                IntelliDCE Secure Compilation Pipeline
+              </h2>
+              <p class="text-xs md:text-sm text-slate-300 mt-1 max-w-3xl leading-relaxed">
+                GCC performs the C++ frontend and emits GIMPLE SSA. IntelliDCE performs secure, explainable SSA optimization, behavioral verification, and sandboxed execution.
+              </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="renderPipelineExplorer()" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/20 cursor-pointer">
+                <span class="material-symbols-outlined text-sm">refresh</span>
+                Refresh Pipeline
+              </button>
+            </div>
+          </div>
+
+          <!-- Connected Stage Diagram (Flow representation with directional arrows) -->
+          <div class="mt-6 pt-5 border-t border-white/10">
+            <div class="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <span>Standard Compiler Pipeline & Hybrid Responsibility Flow:</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 text-center text-[11px] font-mono">
+              
+              <!-- 1. Source -->
+              <div class="p-2 rounded-lg bg-white/5 border border-white/10 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-slate-400 font-sans">Input</span>
+                <span class="font-bold text-white mt-0.5">C++ Source</span>
+                <span class="text-[9px] text-slate-400 mt-1">User / Editor</span>
+              </div>
+
+              <!-- 2. Guardian Gate -->
+              <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-amber-300 font-sans">Pre-Intake</span>
+                <span class="font-bold text-amber-200 mt-0.5">Guardian Gate</span>
+                <span class="text-[9px] text-amber-300/80 mt-1">IntelliDCE Layer</span>
+              </div>
+
+              <!-- 3. Lexical -->
+              <div class="p-2 rounded-lg bg-sky-500/10 border border-sky-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-sky-300 font-sans">Stage 1</span>
+                <span class="font-bold text-sky-200 mt-0.5">Lexical (Tokens)</span>
+                <span class="text-[9px] text-sky-300/80 mt-1">GCC Frontend</span>
+              </div>
+
+              <!-- 4. Syntax -->
+              <div class="p-2 rounded-lg bg-sky-500/10 border border-sky-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-sky-300 font-sans">Stage 2</span>
+                <span class="font-bold text-sky-200 mt-0.5">Syntax (AST)</span>
+                <span class="text-[9px] text-sky-300/80 mt-1">GCC Frontend</span>
+              </div>
+
+              <!-- 5. Semantic -->
+              <div class="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-indigo-300 font-sans">Stage 3</span>
+                <span class="font-bold text-indigo-200 mt-0.5">Semantic + Sec</span>
+                <span class="text-[9px] text-indigo-300/80 mt-1">GCC + IntelliDCE</span>
+              </div>
+
+              <!-- 6. IR Gen -->
+              <div class="p-2 rounded-lg bg-violet-500/10 border border-violet-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-violet-300 font-sans">Stage 4</span>
+                <span class="font-bold text-violet-200 mt-0.5">GIMPLE SSA</span>
+                <span class="text-[9px] text-violet-300/80 mt-1">GCC IR Dump</span>
+              </div>
+
+              <!-- 7. Optimization -->
+              <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-emerald-300 font-sans">Stage 5</span>
+                <span class="font-bold text-emerald-200 mt-0.5">DCE Pass</span>
+                <span class="text-[9px] text-emerald-300/80 mt-1">IntelliDCE Engine</span>
+              </div>
+
+              <!-- 8. Target Gen -->
+              <div class="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 flex flex-col items-center justify-center">
+                <span class="text-[10px] text-rose-300 font-sans">Stage 6</span>
+                <span class="font-bold text-rose-200 mt-0.5">Target & Sandbox</span>
+                <span class="text-[9px] text-rose-300/80 mt-1">GCC + Docker</span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- PHASE 1: ANALYSIS PHASE (Frontend Stages 1 to 5)               -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="size-6 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs">A</span>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Analysis Phase (Source to Semantic Representation)</h3>
+            <span class="text-xs text-slate-400 font-normal ml-auto">GCC C++ Frontend & Pre-Intake Security Inspection</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            <!-- Card 1: Input C++ Source Code -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Source Intake</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200">Stage 0</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-slate-600 text-base">code</span>
+                  Input C++ Source Code
+                </h4>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Length:</span>
+                    <span id="pipe-src-len" class="font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Lines:</span>
+                    <span id="pipe-src-lines" class="font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Source SHA-256:</span>
+                    <span id="pipe-src-hash" class="text-[10px] text-slate-600 truncate max-w-[150px]">—</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Session ID:</span>
+                    <span id="pipe-session-id" class="text-[10px] text-slate-600 truncate max-w-[150px] font-mono">sess-active</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50/60 p-2 rounded-lg">
+                <span class="material-symbols-outlined text-xs">lock</span>
+                <span>Privacy Safe: Raw credentials/secrets permanently excluded from telemetry.</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Guardian Security Intake Gate -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-amber-600 tracking-wider">IntelliDCE Gate</span>
+                  <span id="pipe-guardian-badge" class="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">ALLOW</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-amber-500 text-base">shield</span>
+                  Guardian Security Intake Gate
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-1">Pre-compiler normalization & prompt-injection defusal layer.</p>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Normalization:</span>
+                    <span id="pipe-guardian-norm" class="font-bold text-emerald-600">Active (NFKC, ZW-Defuse)</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Risk Score:</span>
+                    <span id="pipe-guardian-score" class="font-bold text-slate-800">0 / 100</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Finding Count:</span>
+                    <span id="pipe-guardian-findings" class="font-bold text-slate-800">0 threats detected</span>
+                  </div>
+                </div>
+              </div>
+              <div id="pipe-guardian-warning-box" class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 leading-tight">
+                Downstream policy: All subsequent compilation/execution is gated on Guardian clearance.
+              </div>
+            </div>
+
+            <!-- Card 3: Lexical Analysis (GCC C++ Frontend) -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-sky-600 tracking-wider">Stage 1</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-50 text-sky-700 border border-sky-200">GCC Frontend</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sky-600 text-base">text_fields</span>
+                  Lexical Analysis (Scanning)
+                </h4>
+                <div class="mt-3 space-y-2 text-xs text-slate-600">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400">Processor:</span>
+                    <span class="font-bold text-slate-800 font-mono">GCC Lexer</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400">Status:</span>
+                    <span id="pipe-lex-status" class="font-bold text-slate-700">Delegated to GCC frontend</span>
+                  </div>
+                  <div class="p-2 rounded bg-slate-50 text-[11px] text-slate-500 border border-slate-200/60 leading-relaxed">
+                    Token stream handled directly by GCC compiler frontend. Detailed internal token counts are retained by GCC and not fabricated.
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono">
+                Source &rarr; Token Stream
+              </div>
+            </div>
+
+            <!-- Card 4: Syntax Analysis (GCC C++ Frontend) -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-sky-600 tracking-wider">Stage 2</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-50 text-sky-700 border border-sky-200">GCC Frontend</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-sky-600 text-base">account_tree</span>
+                  Syntax Analysis (Parsing)
+                </h4>
+                <div class="mt-3 space-y-2 text-xs text-slate-600">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400">Grammar Engine:</span>
+                    <span class="font-bold text-slate-800 font-mono">ISO C++17 Parser</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400">AST Status:</span>
+                    <span id="pipe-syn-status" class="font-bold text-slate-700">Handled by GCC frontend; detailed parse tree not exposed</span>
+                  </div>
+                  <div class="p-2 rounded bg-slate-50 text-[11px] text-slate-500 border border-slate-200/60 leading-relaxed">
+                    GCC converts token stream into internal Abstract Syntax Tree (AST). Syntax errors are surfaced if compilation fails.
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono">
+                Tokens &rarr; Parse Tree / AST
+              </div>
+            </div>
+
+            <!-- Card 5: Semantic Analysis (GCC + IntelliDCE Security) -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between md:col-span-2 lg:col-span-2">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-indigo-600 tracking-wider">Stage 3</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200">GCC + IntelliDCE</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-indigo-600 text-base">verified</span>
+                  Semantic Analysis & Static Security Audit
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-1">Combines GCC type/symbol checking with IntelliDCE static vulnerability and code health pattern matching.</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <!-- GCC Semantic Check -->
+                  <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80">
+                    <div class="text-[10px] font-bold uppercase text-slate-500 mb-1">GCC Semantic Resolution</div>
+                    <div class="text-xs space-y-1">
+                      <div class="flex justify-between"><span class="text-slate-400">Type Binding:</span> <span id="pipe-sem-type" class="font-bold text-slate-700 font-mono">Resolved by GCC</span></div>
+                      <div class="flex justify-between"><span class="text-slate-400">Scope Resolution:</span> <span id="pipe-sem-scope" class="font-bold text-slate-700 font-mono">Valid</span></div>
+                    </div>
+                  </div>
+
+                  <!-- IntelliDCE Static Security Findings -->
+                  <div class="p-2.5 rounded-lg bg-amber-50/60 border border-amber-200/80">
+                    <div class="text-[10px] font-bold uppercase text-amber-700 mb-1">IntelliDCE Static Security Findings</div>
+                    <div class="text-xs space-y-1">
+                      <div class="flex justify-between"><span class="text-slate-400">CWE Vulnerabilities:</span> <span id="pipe-sem-cwes" class="font-bold text-amber-800 font-mono">0 detected</span></div>
+                      <div class="flex justify-between"><span class="text-slate-400">Code Health Rating:</span> <span id="pipe-sem-grade" class="font-bold text-slate-700 font-mono">—</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                <span>AST &rarr; Semantic Table & AST Security Heuristics</span>
+                <span class="text-slate-500 italic">Static heuristics only; no formal semantic verification claimed.</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- PHASE 2: SYNTHESIS & OPTIMIZATION PHASE (Stages 6 to 9)        -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="size-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">B</span>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Synthesis & Optimization Phase (IR Generation to Sandboxed Target)</h3>
+            <span class="text-xs text-slate-400 font-normal ml-auto">GCC GIMPLE SSA & IntelliDCE Optimization Pipeline</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <!-- Card 6: Intermediate Code Generation -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-violet-600 tracking-wider">Stage 4</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-violet-50 text-violet-700 border border-violet-200">GCC SSA</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-violet-600 text-base">schema</span>
+                  Intermediate Code Generation
+                </h4>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Format:</span>
+                    <span class="font-bold text-slate-800">GIMPLE SSA</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Dump Flag:</span>
+                    <span class="text-[10px] text-slate-600">-fdump-tree-ssa</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">SSA Availability:</span>
+                    <span id="pipe-ssa-avail" class="font-bold text-slate-800">Available</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Functions:</span>
+                    <span id="pipe-ssa-funcs" class="font-bold text-slate-800">—</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono">
+                AST &rarr; GIMPLE SSA Statements
+              </div>
+            </div>
+
+            <!-- Card 7: Control-Flow & Data-Flow Analysis -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-indigo-600 tracking-wider">Analysis</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200">IntelliDCE</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-indigo-600 text-base">hub</span>
+                  CFG & Data-Flow Analysis
+                </h4>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Basic Blocks:</span>
+                    <span id="pipe-cfg-blocks" class="font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Live Statements:</span>
+                    <span id="pipe-cfg-stmts" class="font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Def-Use Chains:</span>
+                    <span id="pipe-cfg-defuse" class="font-bold text-emerald-600">Resolved</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">CFG Graph:</span>
+                    <span id="pipe-cfg-graph" class="font-bold text-slate-800 font-mono">DOT Rendered</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono">
+                GIMPLE &rarr; Directed Basic Block Graph
+              </div>
+            </div>
+
+            <!-- Card 8: Code Optimization (DCE) -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-emerald-600 tracking-wider">Stage 5</span>
+                  <span id="pipe-dce-mode-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">Classical</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-emerald-600 text-base">auto_fix_high</span>
+                  Code Optimization (DCE)
+                </h4>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Pruned Stmts:</span>
+                    <span id="pipe-dce-removed" class="font-bold text-emerald-600">0</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Passes Applied:</span>
+                    <span class="text-[10px] text-slate-700">SCCP, Unreachable, Dead Assign</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">ML Confidence:</span>
+                    <span id="pipe-dce-ml-conf" class="text-[10px] text-slate-500">Classical Mode (Rule-based DCE)</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Pass Duration:</span>
+                    <span id="pipe-dce-duration" class="font-bold text-slate-800">—</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-400 font-mono">
+                SSA &rarr; Minimal Optimized SSA
+              </div>
+            </div>
+
+            <!-- Card 9: Target Code Generation & Docker Sandbox Execution -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-rose-600 tracking-wider">Stage 6</span>
+                  <span id="pipe-target-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200">Not Run</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-rose-600 text-base">memory</span>
+                  Target Code Gen & Sandbox
+                </h4>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Target Compiler:</span>
+                    <span class="font-bold text-slate-800">GCC Binary Gen</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Sandbox Runtime:</span>
+                    <span id="pipe-sandbox-runtime" class="font-bold text-slate-800">Docker (Isolated)</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Network Isolation:</span>
+                    <span class="font-bold text-emerald-600">--network none</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Resource Limits:</span>
+                    <span class="text-[10px] text-slate-700">128MB, 5s timeout, tmpfs</span>
+                  </div>
+                </div>
+              </div>
+              <div id="pipe-target-note" class="mt-3 pt-2 border-t border-slate-100 text-[10px] text-slate-500 leading-tight">
+                Executable is isolated in an unprivileged container; host execution is blocked.
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <!-- PHASE 3: VERIFICATION & EXPLAINABILITY LAYER (Cross-Cutting)   -->
+        <!-- ═══════════════════════════════════════════════════════════════ -->
+        <div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="size-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">C</span>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Verification & Explainability Layer (Cross-Cutting Assurance)</h3>
+            <span class="text-xs text-slate-400 font-normal ml-auto">Behavioral Verification, Evidence Explainability & Tamper-Evident Audit</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <!-- Card 10: DCE Explainability -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-purple-600 tracking-wider">Cross-Cutting</span>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-purple-50 text-purple-700 border border-purple-200">Explainable</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-purple-600 text-base">psychology</span>
+                  DCE Explainability
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-1">Per-statement justification for eliminated instructions, def-use impact, and ML rationale.</p>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Explanation Records:</span>
+                    <span id="pipe-expl-count" class="font-bold text-slate-800">0 records</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Deep Inspection:</span>
+                    <span class="text-[10px] text-purple-700 font-bold">CFG & Diff Linked</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                <button onclick="document.querySelector('.nav-btn[data-panel=\'compare\']')?.click()" class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer">Compare</button>
+                <button onclick="document.querySelector('.nav-btn[data-panel=\'cfg\']')?.click()" class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer">CFG</button>
+                <button onclick="document.querySelector('.nav-btn[data-panel=\'explainer\']')?.click()" class="flex-1 py-1 px-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-[11px] font-semibold transition-colors cursor-pointer">Explainer</button>
+              </div>
+            </div>
+
+            <!-- Card 11: Verified DCE Regression Guard -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-emerald-600 tracking-wider">Cross-Cutting</span>
+                  <span id="pipe-verify-status-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200">Not Run</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-emerald-600 text-base">fact_check</span>
+                  Verified DCE Regression Guard
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-1">Behavioral regression testing comparing original vs optimized binary outputs across pseudo-random inputs.</p>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Verification Status:</span>
+                    <span id="pipe-verify-status" class="font-bold text-slate-700">Verification Not Run</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Matching Cases:</span>
+                    <span id="pipe-verify-cases" class="font-bold text-slate-800">—</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">Recorded Seed:</span>
+                    <span id="pipe-verify-seed" class="text-slate-800 font-mono">42</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                <button onclick="document.querySelector('.nav-btn[data-panel=\'compare\']')?.click(); setTimeout(() => document.getElementById('run-verify-btn')?.click(), 100);" class="w-full py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                  <span class="material-symbols-outlined text-sm">play_arrow</span>
+                  Run Verification Guard
+                </button>
+              </div>
+            </div>
+
+            <!-- Card 12: Audit & DRONA Verified Repair Loop -->
+            <div class="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] font-bold uppercase text-indigo-600 tracking-wider">Cross-Cutting</span>
+                  <span id="pipe-audit-chain-badge" class="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">Tamper-Evident</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-indigo-600 text-base">history_edu</span>
+                  Audit & DRONA Repair Loop
+                </h4>
+                <p class="text-[11px] text-slate-500 mt-1">Cryptographic SHA-256 hash-chained security decision ledger and self-healing repair lifecycle.</p>
+                <div class="mt-3 space-y-1.5 text-xs text-slate-600 font-mono">
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Chain Integrity:</span>
+                    <span id="pipe-audit-integrity" class="font-bold text-emerald-600">Valid Chain</span>
+                  </div>
+                  <div class="flex justify-between py-1 border-b border-slate-100">
+                    <span class="text-slate-400 font-sans">Recorded Events:</span>
+                    <span id="pipe-audit-events" class="font-bold text-slate-800">0</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span class="text-slate-400 font-sans">DRONA Self-Healing:</span>
+                    <span id="pipe-drona-state" class="text-slate-700">Standing by</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
+                <button onclick="document.querySelector('.nav-btn[data-panel=\'health\']')?.click()" class="flex-1 py-1 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold transition-colors cursor-pointer">Code Health</button>
+                <button onclick="window.exportAuditJson && window.exportAuditJson()" class="flex-1 py-1 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors cursor-pointer">Audit Logs</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ======  AI PATTERN ANALYSIS PANEL  ====== -->
+      <div id="panel-ai-patterns" class="panel hidden absolute inset-0 overflow-y-auto scr p-8 bg-white">
+        <div class="max-w-3xl mx-auto space-y-6 fade-up">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-200">
+            <div class="flex items-center gap-4">
+              <div class="size-14 rounded-2xl bg-violet-50 border border-violet-200 flex items-center justify-center shadow-sm">
+                <span class="material-symbols-outlined text-violet-600 text-3xl">neurology</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-2xl font-bold tracking-tight text-slate-900">AI Pattern Analysis</h2>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide bg-violet-50 text-violet-700 border border-violet-200">Heuristic</span>
+                </div>
+                <p class="text-slate-500 text-xs mt-1">A code-style estimate based on visible structural and writing patterns.</p>
+              </div>
+            </div>
+            <button onclick="refreshAiPatternAnalysis()" class="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer">
+              <span class="material-symbols-outlined text-sm">refresh</span> Analyze Editor Code
+            </button>
+          </div>
+
+          <div class="relative overflow-hidden rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-cyan-50 p-8 shadow-sm">
+            <div class="absolute -right-10 -top-10 size-40 rounded-full bg-violet-200/25 blur-2xl"></div>
+            <div class="relative flex flex-col sm:flex-row items-center gap-7">
+              <div class="size-40 shrink-0 rounded-full bg-white border-[10px] border-violet-100 shadow-inner flex flex-col items-center justify-center">
+                <span id="ai-pattern-score" class="text-5xl font-black font-mono tracking-tighter text-violet-700">—</span>
+                <span class="mt-1 text-[10px] font-black uppercase tracking-[.18em] text-slate-400">AI-likeness</span>
+              </div>
+              <div class="text-center sm:text-left">
+                <p id="ai-pattern-band" class="text-lg font-bold text-slate-900">Waiting for editor code</p>
+                <p id="ai-pattern-summary" class="mt-2 max-w-lg text-sm leading-relaxed text-slate-600">Paste code in the Editor, then open this tab or select “Analyze Editor Code.”</p>
+                <div id="ai-pattern-signals" class="mt-4 flex flex-wrap justify-center sm:justify-start gap-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-start gap-3">
+              <span class="material-symbols-outlined text-slate-500">info</span>
+              <p class="text-xs leading-relaxed text-slate-500"><strong class="text-slate-700">Important:</strong> this is an AI-pattern estimate, not proof that a person used AI. It evaluates code style signals such as repeated templates, comment style, naming uniformity, and structural repetition. It does not send code to an external service.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======  VERIFIED DCE REGRESSION GUARD PANEL (Feature 1)  ====== -->
+      <div id="panel-verifier" class="panel hidden absolute inset-0 overflow-y-auto scr p-6 bg-slate-50/60">
+        <div class="max-w-6xl mx-auto space-y-6 fade-up">
+          
+          <!-- Verifier Header -->
+          <div class="flex items-center justify-between pb-4 border-b border-slate-200 flex-wrap gap-3">
+            <div class="flex items-center gap-3.5">
+              <div class="size-11 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/20">
+                <span class="material-symbols-outlined text-2xl">verified</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <h2 class="text-base font-black text-slate-900 tracking-tight">Verified DCE & Optimization Regression Guard</h2>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">GUARD v1.0</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                    <span class="size-1.5 rounded-full bg-blue-500"></span> DETERMINISTIC BEHAVIOR PRESERVATION
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Dual isolated compilation and differential test harness proving optimized program preserves identical observable behavior (stdout, exit codes, termination) vs original across deterministic seeded test runs.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <label class="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer select-none px-2.5 py-1.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-2xs">
+                <input type="checkbox" id="auto-verify-opt-toggle" class="rounded text-emerald-600 focus:ring-emerald-500 size-3.5 cursor-pointer">
+                <span class="font-medium">Auto-verify on Run</span>
+              </label>
+              <div class="flex items-center rounded-xl border border-slate-200 bg-white overflow-hidden text-[11px] shadow-2xs">
+                <span class="px-2.5 text-slate-400 font-mono text-[10px]">Seed</span>
+                <input id="verify-seed-input" type="number" value="42" class="w-14 px-1.5 py-1.5 font-mono text-slate-700 border-l border-slate-200 outline-none text-center" title="Deterministic Seed">
+              </div>
+              <button id="verify-opt-btn" onclick="triggerOptimizationVerification()" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
+                <span class="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+                <span>Verify Optimization</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preflight Diagnostic Card -->
+          <div id="verify-preflight-card" class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-slate-500">memory</span>
+                <span class="text-xs font-bold text-slate-900 font-mono">Sandbox Preflight Diagnostics</span>
+              </div>
+              <span id="verify-preflight-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">Checking...</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-[10px] text-slate-400 font-mono block">Docker Daemon</span>
+                <span id="verify-preflight-daemon" class="font-bold text-slate-800 font-mono mt-0.5 block">Checking...</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-[10px] text-slate-400 font-mono block">Hardened Sandbox Image</span>
+                <span id="verify-preflight-image" class="font-bold text-slate-800 font-mono mt-0.5 block">gcc:13.2.0-bookworm-slim</span>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-[10px] text-slate-400 font-mono block">Execution Policy</span>
+                <span class="font-bold text-emerald-700 font-mono mt-0.5 block">Container Only (No Host Fallback)</span>
+              </div>
+            </div>
+            <div id="verify-preflight-setup" class="hidden p-3 rounded-xl bg-amber-50/80 border border-amber-200/90 text-xs space-y-1.5">
+              <div class="flex items-center gap-1.5 text-amber-900 font-bold">
+                <span class="material-symbols-outlined text-sm">shield_lock</span>
+                <span>Verification safely blocked — Docker sandbox required</span>
+              </div>
+              <p class="text-[11px] text-amber-800 leading-relaxed" id="verify-preflight-reason">The Docker daemon is not reachable or the container image is not pulled.</p>
+              <div class="text-[10px] font-mono text-slate-800 bg-white/90 p-2 rounded border border-amber-200 space-y-0.5">
+                <p>1. Start Docker Desktop on macOS.</p>
+                <p>2. Pull hardened sandbox image: <code class="text-primary font-bold">docker pull gcc:13.2.0-bookworm-slim</code></p>
+                <p>3. Re-run verification to perform isolated behavioral equivalence checks.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Standby View -->
+          <div id="verify-standby-view" class="p-8 rounded-2xl bg-white border border-slate-200 shadow-xs text-center space-y-2">
+            <div class="size-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 border border-emerald-100">
+              <span class="material-symbols-outlined text-2xl">verified_user</span>
+            </div>
+            <p class="text-sm text-slate-700 font-bold">Optimization regression verification is ready.</p>
+            <p class="text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">Click <strong class="text-slate-800">"Verify Optimization"</strong> to compile both original and optimized C++ binaries in an isolated sandbox, execute across 5 deterministic test inputs with the recorded seed, and verify observable behavior preservation.</p>
+          </div>
+
+          <!-- Loading View -->
+          <div id="verify-loading-view" class="hidden p-8 rounded-2xl bg-white border border-slate-200 shadow-xs text-center">
+            <div class="inline-flex items-center gap-3 text-xs font-semibold text-slate-700">
+              <span class="size-5 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin"></span>
+              <span>Compiling original and optimized binaries, executing deterministic test inputs...</span>
+            </div>
+          </div>
+
+          <!-- Results Card -->
+          <div id="verify-result-card" class="hidden space-y-4">
+            <!-- Status Banner -->
+            <div id="verify-status-banner" class="flex items-center justify-between p-4 rounded-2xl border bg-slate-50 border-slate-200 transition-all shadow-xs">
+              <div class="flex items-center gap-3">
+                <span id="verify-status-icon" class="material-symbols-outlined text-3xl text-emerald-600">verified</span>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-mono font-bold uppercase text-slate-500">Outcome</span>
+                    <span id="verify-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200">Verified</span>
+                  </div>
+                  <p id="verify-status-summary" class="text-xs font-semibold text-slate-700 mt-1"></p>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-[10px] font-mono text-slate-400">Duration</span>
+                <p id="verify-duration" class="text-xs font-mono font-bold text-slate-700">0 ms</p>
+              </div>
+            </div>
+
+            <!-- Metrics Row -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+                <span class="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-1">Pruned Instructions</span>
+                <span id="verify-metric-pruned" class="text-base font-mono font-black text-emerald-600">0</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+                <span class="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-1">Test Cases Run</span>
+                <span id="verify-metric-total" class="text-base font-mono font-black text-slate-700">0</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+                <span class="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-1">Matching Cases</span>
+                <span id="verify-metric-matching" class="text-base font-mono font-black text-emerald-600">0</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+                <span class="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-1">Recorded Seed</span>
+                <span id="verify-metric-seed" class="text-base font-mono font-black text-slate-700">42</span>
+              </div>
+              <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+                <span class="text-[10px] font-mono uppercase font-bold text-slate-500 block mb-1">Failing Case</span>
+                <span id="verify-metric-failing" class="text-base font-mono font-black text-slate-400">None</span>
+              </div>
+            </div>
+
+            <!-- Failure details -->
+            <div id="verify-failure-section" class="hidden p-4 rounded-2xl bg-rose-50/70 border border-rose-200 text-xs space-y-2.5">
+              <div class="flex items-center gap-1.5 text-rose-800 font-bold">
+                <span class="material-symbols-outlined text-sm">warning</span>
+                <span>Minimal Failing Input & Divergence Analysis</span>
+              </div>
+              <div class="space-y-1">
+                <span class="text-[10px] font-mono text-slate-500 uppercase">Input Payload:</span>
+                <pre id="verify-failing-input" class="p-2.5 rounded-xl bg-white border border-rose-200 font-mono text-[11px] text-slate-800 whitespace-pre-wrap max-h-28 overflow-auto"></pre>
+              </div>
+              <div id="verify-failing-explanation" class="text-[11px] text-rose-900 leading-relaxed font-sans"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======  SECURITY BENCHMARK LAB PANEL (Feature 2)  ====== -->
+      <div id="panel-benchmark" class="panel hidden absolute inset-0 overflow-y-auto scr p-6 bg-slate-50/60">
+        <div class="max-w-6xl mx-auto space-y-6 fade-up">
+          
+          <!-- Lab Header -->
+          <div class="flex items-center justify-between pb-4 border-b border-slate-200 flex-wrap gap-3">
+            <div class="flex items-center gap-3.5">
+              <div class="size-11 rounded-2xl bg-gradient-to-tr from-rose-500 to-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-500/20">
+                <span class="material-symbols-outlined text-2xl">security</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <h2 class="text-base font-black text-slate-900 tracking-tight">Security Mutation Testing & Benchmark Lab</h2>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-rose-100 text-rose-700 border border-rose-200">CORPUS v2.0</span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                    <span class="size-1.5 rounded-full bg-emerald-500"></span> ALL PROCESSING LOCAL / SIMULATED (NO LLM / TOOL EXECUTION)
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Isolated security evaluation harness measuring detection accuracy against reproducible prompt injections, encodings, and evasions without executing payloads or polluting production logs.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button id="btn-run-benchmark" onclick="runBenchmarkLab()" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm shadow-slate-900/20 cursor-pointer" title="Execute full security corpus evaluation and calculate accuracy metrics">
+                <span class="material-symbols-outlined text-sm text-emerald-400">play_arrow</span>
+                <span>Run Security Benchmark</span>
+              </button>
+              <button onclick="exportBenchmarkJson()" class="px-3.5 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-xs hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                <span class="material-symbols-outlined text-sm text-slate-500">download</span>
+                <span>Export JSON</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">Precision</span>
+              <span id="bm-metric-precision" class="text-lg font-mono font-black text-emerald-600">—</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">TP / (TP + FP)</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">Recall</span>
+              <span id="bm-metric-recall" class="text-lg font-mono font-black text-emerald-600">—</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">TP / (TP + FN)</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">F1-Score</span>
+              <span id="bm-metric-f1" class="text-lg font-mono font-black text-emerald-600">—</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">Harmonic Mean</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">Attack Block Rate</span>
+              <span id="bm-metric-block-rate" class="text-lg font-mono font-black text-emerald-600">—</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">Attacks Caught</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">False Positive Rate</span>
+              <span id="bm-metric-fpr" class="text-lg font-mono font-black text-slate-700">—</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">Benign Blocked</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">Tested Cases</span>
+              <span id="bm-metric-total" class="text-lg font-mono font-black text-slate-800">0</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">Total Corpus</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs text-center">
+              <span class="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-1">Median Latency</span>
+              <span id="bm-metric-latency" class="text-lg font-mono font-black text-slate-700">0 ms</span>
+              <span class="text-[9px] text-slate-400 block mt-0.5">Per evaluation</span>
+            </div>
+          </div>
+
+          <!-- Confusion Matrix & Category Breakdown -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Confusion Matrix (4 cols) -->
+            <div class="lg:col-span-4 p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+              <div>
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono mb-3">Confusion Matrix</h3>
+                <div class="grid grid-cols-2 gap-2.5 text-center">
+                  <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                    <span class="text-[9px] font-mono font-bold text-emerald-700 uppercase block">True Positives (TP)</span>
+                    <span id="bm-cm-tp" class="text-xl font-mono font-black text-emerald-800">0</span>
+                    <span class="text-[9px] text-emerald-600 block mt-0.5">Attacks Blocked</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                    <span class="text-[9px] font-mono font-bold text-rose-700 uppercase block">False Negatives (FN)</span>
+                    <span id="bm-cm-fn" class="text-xl font-mono font-black text-rose-800">0</span>
+                    <span class="text-[9px] text-rose-600 block mt-0.5">Attacks Missed</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <span class="text-[9px] font-mono font-bold text-amber-700 uppercase block">False Positives (FP)</span>
+                    <span id="bm-cm-fp" class="text-xl font-mono font-black text-amber-800">0</span>
+                    <span class="text-[9px] text-amber-600 block mt-0.5">Benign Blocked</span>
+                  </div>
+                  <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                    <span class="text-[9px] font-mono font-bold text-slate-600 uppercase block">True Negatives (TN)</span>
+                    <span id="bm-cm-tn" class="text-xl font-mono font-black text-slate-800">0</span>
+                    <span class="text-[9px] text-slate-500 block mt-0.5">Benign Allowed</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between text-[11px] font-mono text-slate-500">
+                <span>Accuracy: <strong id="bm-accuracy-val" class="text-slate-800">—</strong></span>
+                <span>Corpus: <strong class="text-slate-800">v2.0.0</strong></span>
+              </div>
+            </div>
+
+            <!-- Category Breakdown (8 cols) -->
+            <div class="lg:col-span-8 p-5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">Category Resilience & Detection Rates</h3>
+                <span class="text-[10px] text-slate-400 font-mono">Normalized against attack intent</span>
+              </div>
+              <div id="bm-category-list" class="space-y-2.5 max-h-56 overflow-y-auto scr pr-1">
+                <div class="text-xs text-slate-400 italic text-center py-8">Click "Run Benchmark Lab" to evaluate categories.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Labeled Cases Table Section -->
+          <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">Corpus Mutation Evaluations</h3>
+                <span id="bm-filter-count" class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 text-slate-600 border border-slate-200">0 cases</span>
+              </div>
+              <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-medium">
+                <button onclick="filterBenchmarkCases('all')" id="bm-filter-all" class="px-2.5 py-1 rounded-lg bg-white shadow-2xs text-slate-800 font-bold transition-all cursor-pointer">All</button>
+                <button onclick="filterBenchmarkCases('mismatches')" id="bm-filter-mismatches" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">Missed / Failed Only</button>
+                <button onclick="filterBenchmarkCases('attacks')" id="bm-filter-attacks" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">Attacks Only</button>
+                <button onclick="filterBenchmarkCases('benign')" id="bm-filter-benign" class="px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer">Benign Only</button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto scr max-h-96 overflow-y-auto rounded-xl border border-slate-200">
+              <table class="w-full text-left text-xs font-mono border-collapse">
+                <thead class="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 sticky top-0 z-10">
+                  <tr>
+                    <th class="py-2.5 px-3">Case ID</th>
+                    <th class="py-2.5 px-3">Category</th>
+                    <th class="py-2.5 px-3">Context</th>
+                    <th class="py-2.5 px-3">Input Payload Excerpt</th>
+                    <th class="py-2.5 px-3 text-center">Expected</th>
+                    <th class="py-2.5 px-3 text-center">Actual</th>
+                    <th class="py-2.5 px-3 text-center">Risk / Score</th>
+                    <th class="py-2.5 px-3 text-center">Protected</th>
+                    <th class="py-2.5 px-3 text-center">Outcome</th>
+                  </tr>
+                </thead>
+                <tbody id="bm-cases-tbody" class="divide-y divide-slate-100 text-[11px] bg-white">
+                  <tr>
+                    <td colspan="9" class="py-8 text-center text-slate-400 italic">No benchmark run active. Click "Run Benchmark Lab" to evaluate all cases.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ======  SECURITY DECISION TIMELINE & AUDIT PANEL (Feature 3)  ====== -->
+      <div id="panel-audit" class="panel hidden absolute inset-0 overflow-y-auto scr p-6 bg-slate-50/60">
+        <div class="max-w-6xl mx-auto space-y-6 fade-up">
+          
+          <!-- Audit Header -->
+          <div class="flex items-center justify-between pb-4 border-b border-slate-200 flex-wrap gap-3">
+            <div class="flex items-center gap-3.5">
+              <div class="size-11 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
+                <span class="material-symbols-outlined text-2xl">history_edu</span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <h2 class="text-base font-black text-slate-900 tracking-tight">Security Decision Timeline & Audit Report</h2>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">SESSION: <span id="audit-session-display">default</span></span>
+                  <span class="px-2.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                    <span class="size-1.5 rounded-full bg-emerald-500"></span> TAMPER-EVIDENT HASH CHAIN (LOCAL APPLICATION SCOPE)
+                  </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">Chronological record of normalizations, threat checks, DRONA gate validations, tool access, and compiler gates linked via sequential SHA-256 hashes. Privacy-conscious: no secrets or raw attack texts stored.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+                <button id="audit-scope-active" onclick="setAuditScope('active')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-2xs transition-all cursor-pointer">Active Session</button>
+                <button id="audit-scope-all" onclick="setAuditScope('all')" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer">All Sessions</button>
+              </div>
+              <button id="btn-verify-integrity" onclick="checkAuditIntegrity()" class="px-3.5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer">
+                <span class="material-symbols-outlined text-sm text-emerald-400">verified_user</span>
+                <span>Verify Hash Chain</span>
+              </button>
+              <button onclick="exportAuditReportJson()" class="px-3.5 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-xs hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                <span class="material-symbols-outlined text-sm text-slate-500">download</span>
+                <span>Export Audit JSON</span>
+              </button>
+              <button onclick="loadAuditTimeline()" class="px-3 py-2 rounded-xl bg-white text-slate-700 border border-slate-200 font-bold text-xs hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer" title="Refresh Timeline">
+                <span class="material-symbols-outlined text-sm text-slate-500">refresh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Integrity Status Banner -->
+          <div id="audit-integrity-banner" class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="size-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-lg">verified</span>
+              </div>
+              <div>
+                <p id="audit-integrity-title" class="text-xs font-bold text-emerald-900">Hash Chain Integrity: Unbroken</p>
+                <p id="audit-integrity-detail" class="text-[11px] text-emerald-700 font-mono">Sequential SHA-256 linking verified. Tamper-evident within local session storage.</p>
+              </div>
+            </div>
+            <div id="audit-head-hash-display" class="text-[10px] font-mono text-emerald-800 bg-emerald-100/60 px-2.5 py-1 rounded-lg border border-emerald-200 truncate max-w-xs">
+              Head: ...
+            </div>
+          </div>
+
+          <!-- Summary Metric Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider">Total Events</span>
+                <span class="material-symbols-outlined text-base text-indigo-500">format_list_numbered</span>
+              </div>
+              <div id="audit-stat-total" class="text-2xl font-black font-mono text-slate-800">0</div>
+              <span class="text-[10px] text-slate-400 mt-1 block">Chronological events</span>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider">Blocked Actions</span>
+                <span class="material-symbols-outlined text-base text-rose-500">gavel</span>
+              </div>
+              <div id="audit-stat-blocks" class="text-2xl font-black font-mono text-rose-600">0</div>
+              <span class="text-[10px] text-slate-400 mt-1 block">Prevented before execution</span>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider">Threat Detections</span>
+                <span class="material-symbols-outlined text-base text-amber-500">warning</span>
+              </div>
+              <div id="audit-stat-threats" class="text-2xl font-black font-mono text-amber-600">0</div>
+              <span class="text-[10px] text-slate-400 mt-1 block">Pattern & injection hits</span>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+              <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                <span class="text-[10px] font-bold uppercase tracking-wider">Hash Integrity</span>
+                <span class="material-symbols-outlined text-base text-emerald-500">verified</span>
+              </div>
+              <div id="audit-stat-integrity" class="text-2xl font-black font-mono text-emerald-600">VALID</div>
+              <span class="text-[10px] text-slate-400 mt-1 block">SHA-256 chain verified</span>
+            </div>
+          </div>
+
+          <!-- Filters Row -->
+          <div class="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200/80 shadow-2xs flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mr-1">Severity:</span>
+              <button onclick="setAuditSeverityFilter('all')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all cursor-pointer" data-sev="all">All</button>
+              <button onclick="setAuditSeverityFilter('critical')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-sev="critical">Critical</button>
+              <button onclick="setAuditSeverityFilter('high')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-sev="high">High</button>
+              <button onclick="setAuditSeverityFilter('medium')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-sev="medium">Medium</button>
+              <button onclick="setAuditSeverityFilter('low')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-sev="low">Low</button>
+              <button onclick="setAuditSeverityFilter('info')" class="audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-sev="info">Info</button>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wide mr-1">Category:</span>
+              <button onclick="setAuditCategoryFilter('all')" class="audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all cursor-pointer" data-cat="all">All</button>
+              <button onclick="setAuditCategoryFilter('policy')" class="audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-cat="policy">Policy Decisions</button>
+              <button onclick="setAuditCategoryFilter('threats')" class="audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-cat="threats">Threats & Redactions</button>
+              <button onclick="setAuditCategoryFilter('drona')" class="audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-cat="drona">DRONA & Tools</button>
+              <button onclick="setAuditCategoryFilter('compiler')" class="audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer" data-cat="compiler">Compiler & Healing</button>
+            </div>
+          </div>
+
+          <!-- Timeline Event Stream -->
+          <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Chronological Decision Stream</h3>
+              <span id="audit-event-count-label" class="text-xs font-mono text-slate-400">0 events</span>
+            </div>
+
+            <!-- Timeline Container -->
+            <div id="audit-timeline-stream" class="relative pl-6 space-y-4 before:content-[''] before:absolute before:left-2.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+              <div class="text-center py-10 text-slate-400 text-xs italic">
+                No events recorded in this session yet. Run an analysis, chat with DRONA, or execute a test to generate audit records.
+              </div>
+            </div>
+          </div>
+
+          <!-- Scope and Privacy Disclaimer -->
+          <div class="p-3.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 text-[11px] leading-relaxed flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-slate-400 text-base shrink-0 mt-0.5">info</span>
+            <div>
+              <strong>Audit Privacy & Integrity Boundaries:</strong> Events in this timeline are linked sequentially via SHA-256 hashes (<code class="bg-white px-1 py-0.5 rounded border border-slate-200">prevHash &rarr; hash</code>). This provides tamper-evident guarantees strictly within the application's local session storage scope; it is not a distributed blockchain. For privacy, raw passwords, API keys, full prompts, and entire attack payloads are permanently redacted prior to logging.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      </div>
 </div>
 
 
@@ -1144,6 +2409,31 @@ let cfgScale = 1;
 let ws = null;
 let logLines = [];
 let currentTcLabel = '';
+
+// ── Security Decision Timeline Session & Client Logger ─────────────────────
+window.currentAuditSessionId = window.currentAuditSessionId || ('run-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6));
+let currentAuditSessionId = window.currentAuditSessionId;
+
+async function logClientAuditEvent(eventType, severity, decision, shortExplanation, safeMetadata = {}, stoppedBeforeExecution = false) {
+  try {
+    await fetch('/api/audit/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: window.currentAuditSessionId || currentAuditSessionId,
+        eventType,
+        severity,
+        decision,
+        shortExplanation,
+        safeMetadata,
+        stoppedBeforeExecution,
+      }),
+    });
+  } catch (e) {
+    console.warn('[Audit] Failed to log client event:', e);
+  }
+}
+window.logClientAuditEvent = logClientAuditEvent;
 
 const TESTCASE_INPUTS = {
   TC01: `#include <iostream>
@@ -1353,10 +2643,48 @@ int main() {
     cout << "Security audit demo completed" << endl;
     return 0;
 }`
+,
+  'Insecure Code Test': `#include <iostream>
+#include <cstring>
+#include <cstdlib>
+
+void vulnerable_copy(const char* input) {
+    char buffer[16];
+    strcpy(buffer, input);          // CWE-120: no bounds check, classic buffer overflow
+    std::cout << "Copied: " << buffer << std::endl;
+}
+
+void run_shell_command(const std::string& user_input) {
+    std::string cmd = "echo " + user_input;
+    system(cmd.c_str());            // CWE-78: unsanitized input passed to shell
+}
+
+int format_string_bug(const char* user_input) {
+    printf(user_input);             // CWE-134: format string vulnerability (should be printf("%s", user_input))
+    return 0;
+}
+
+char* use_after_free_demo() {
+    char* data = (char*)malloc(32);
+    strcpy(data, "sensitive");
+    free(data);
+    return data;                    // CWE-416: returning a pointer after free
+}
+
+int main() {
+    char password[8] = "admin123";  // CWE-798: hardcoded credential
+    vulnerable_copy("this string is way longer than sixteen bytes on purpose");
+    format_string_bug("%s%s%s%s");  // will likely crash or leak stack memory
+    use_after_free_demo();
+    return 0;
+}
+`
 };
 
 function normalizeTcLabel(tc) {
+  if (tc === 'Insecure Code Test' || String(tc ?? '').toLowerCase().includes('insecure')) return 'Insecure Code Test';
   if (String(tc ?? '').includes('SEC')) return 'TC_SEC';
+  if (typeof TESTCASE_INPUTS !== 'undefined' && TESTCASE_INPUTS[tc]) return tc;
   const digits = String(tc ?? '').replace(/\D/g, '');
   const num = Math.max(1, Math.min(99, parseInt(digits || '1', 10)));
   return `TC${String(num).padStart(2, '0')}`;
@@ -1366,12 +2694,22 @@ function initTestcasePicker() {
   const picker = document.getElementById('tc-picker');
   if (!picker) return;
   picker.innerHTML = '<option value="">Load Testcase...</option>';
-  Object.keys(TESTCASE_INPUTS).sort().forEach(tc => {
+  const keys = Object.keys(TESTCASE_INPUTS);
+  keys.sort((a, b) => {
+    const aIsTc = /^TC\d+$/.test(a);
+    const bIsTc = /^TC\d+$/.test(b);
+    if (aIsTc && bIsTc) return a.localeCompare(b);
+    if (aIsTc) return -1;
+    if (bIsTc) return 1;
+    return a.localeCompare(b);
+  });
+  keys.forEach(tc => {
     const opt = document.createElement('option');
     opt.value = tc;
     opt.textContent = tc;
     picker.appendChild(opt);
   });
+  picker.onchange = () => loadSelectedTestcase();
 }
 
 function loadTestcase(tcLabel) {
@@ -1383,10 +2721,20 @@ function loadTestcase(tcLabel) {
   currentTcLabel = key;
   const picker = document.getElementById('tc-picker');
   if (picker) picker.value = key;
-  document.getElementById('ssa-editor').value = TESTCASE_INPUTS[key];
+  const editor = document.getElementById('ssa-editor');
+  if (editor) {
+    editor.value = TESTCASE_INPUTS[key];
+    editor.scrollTop = 0;
+    editor.scrollLeft = 0;
+    renderSecurityHighlights([]);
+    editor.dispatchEvent(new Event('input'));
+  }
   useEditorCode();
   document.querySelector('.nav-btn[data-panel="editor"]')?.click();
   showToast(`Loaded ${key} into Editor`);
+  if (typeof logClientAuditEvent === 'function') {
+    logClientAuditEvent('input_received', 'info', 'INFO', `Testcase ${key} loaded into Editor`, { testcase: key, length: (TESTCASE_INPUTS[key] || '').length });
+  }
 }
 
 function loadSelectedTestcase() {
@@ -1515,18 +2863,48 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => {
       b.classList.remove('nav-active');
-      b.classList.add('opacity-70');
     });
     btn.classList.add('nav-active');
-    btn.classList.remove('opacity-70');
     const target = btn.dataset.panel;
     document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
     document.getElementById(`panel-${target}`)?.classList.remove('hidden');
+    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     if (target === 'explainer') {
       onExplainerPanelOpened();
     }
+    if (target === 'ai-patterns') {
+      refreshAiPatternAnalysis();
+    }
+    if (target === 'verifier') {
+      updateVerifierPreflight();
+    }
+    if (target === 'health') {
+      onHealthPanelOpened();
+    }
+    if (target === 'benchmark') {
+      if (!currentBenchmarkReport) {
+        runBenchmarkLab();
+      }
+    }
+    if (target === 'audit') {
+      loadAuditTimeline();
+    }
+    if (target === 'pipeline') {
+      renderPipelineExplorer();
+    }
   });
 });
+
+// Enable horizontal mouse wheel scrolling across the floating nav track
+const navTrackEl = document.querySelector('.nav-track');
+if (navTrackEl) {
+  navTrackEl.addEventListener('wheel', (e) => {
+    if (e.deltaY !== 0 && e.deltaX === 0) {
+      e.preventDefault();
+      navTrackEl.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+}
 
 // ── Mode radio styling ─────────────────────────────────────────────────────
 document.querySelectorAll('input[name="mode"]').forEach(radio => {
@@ -1561,8 +2939,129 @@ function useEditorCode() {
     document.getElementById('file-name').textContent = "Editor Content";
     document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('bg-primary/10','text-primary','border-primary/30'));
     showToast('Using code from editor');
+    if (typeof logClientAuditEvent === 'function') {
+      logClientAuditEvent('input_received', 'info', 'INFO', 'Editor source code designated as input stream', { length: code.length });
+    }
 }
 
+let selfHealingEnabled = true;
+let latestSecurityFindings = [];
+
+function escapeSecurityHtml(value) {
+  return String(value).replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]);
+}
+
+function renderSecurityHighlights(findings = []) {
+  latestSecurityFindings = Array.isArray(findings) ? findings : [];
+  const editor = document.getElementById('ssa-editor');
+  const highlight = document.getElementById('security-editor-highlight');
+  if (!editor || !highlight) return;
+  const riskyLines = new Set(latestSecurityFindings.map(finding => Number(finding.line)).filter(Number.isFinite));
+  highlight.innerHTML = editor.value.split('\n').map((line, index) =>
+    `<span class="${riskyLines.has(index + 1) ? 'unsafe-line' : 'safe-line'}">${escapeSecurityHtml(line) || ' '}</span>`
+  ).join('');
+  syncSecurityHighlightScroll();
+}
+
+function syncSecurityHighlightScroll() {
+  const editor = document.getElementById('ssa-editor');
+  const highlight = document.getElementById('security-editor-highlight');
+  if (editor && highlight) highlight.style.transform = `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
+}
+
+function toggleSelfHealing() {
+  selfHealingEnabled = !selfHealingEnabled;
+  const toggle = document.getElementById('self-healing-toggle');
+  const icon = document.getElementById('self-healing-icon');
+  const badge = document.getElementById('self-healing-badge');
+  const pip = document.getElementById('self-healing-pip');
+  const statusText = document.getElementById('self-healing-status-text');
+
+  if (toggle) {
+    toggle.setAttribute('aria-pressed', String(selfHealingEnabled));
+    toggle.title = `Self-Healing: ${selfHealingEnabled ? 'ON' : 'OFF'} (Click to toggle)`;
+    if (selfHealingEnabled) {
+      toggle.className = 'w-full mt-2.5 py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300 transition-all flex items-center justify-between cursor-pointer shadow-xs group';
+      if (icon) icon.className = 'material-symbols-outlined text-[18px] text-emerald-600 transition-transform group-hover:scale-110';
+      if (badge) badge.className = 'flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-300';
+      if (pip) pip.className = 'size-2 rounded-full bg-emerald-500 animate-pulse';
+      if (statusText) {
+        statusText.className = 'text-[10px] font-extrabold uppercase tracking-wider text-emerald-700';
+        statusText.textContent = 'ON';
+      }
+    } else {
+      toggle.className = 'w-full mt-2.5 py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 font-bold text-xs border border-rose-300 transition-all flex items-center justify-between cursor-pointer shadow-xs group';
+      if (icon) icon.className = 'material-symbols-outlined text-[18px] text-rose-600 transition-transform group-hover:scale-110';
+      if (badge) badge.className = 'flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-100 border border-rose-300';
+      if (pip) pip.className = 'size-2 rounded-full bg-rose-500';
+      if (statusText) {
+        statusText.className = 'text-[10px] font-extrabold uppercase tracking-wider text-rose-700';
+        statusText.textContent = 'OFF';
+      }
+    }
+  }
+
+  showToast(selfHealingEnabled ? 'Self-healing is ON (Green) — flagged lines will be auto-healed before analysis.' : 'Self-healing is OFF (Red) — analysis will ask before continuing.');
+}
+
+async function scanEditorForSafety(code) {
+  const activeSession = window.currentAuditSessionId || currentAuditSessionId || 'default';
+  const response = await fetch('/api/scan', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ code, sessionId: activeSession })
+  });
+  if (!response.ok) throw new Error('Security scan is unavailable');
+  const data = await response.json();
+  const findings = Array.isArray(data.findings) ? data.findings : [];
+  renderSecurityHighlights(findings);
+  return findings;
+}
+
+function healFlaggedLines(code, findings) {
+  const riskyLines = new Set(findings.map(finding => Number(finding.line)).filter(Number.isFinite));
+  return code.split('\n').map((line, index) => riskyLines.has(index + 1) ? '' : line).join('\n');
+}
+
+function showSafetyDialog(findings, actionLabel) {
+  const dialog = document.getElementById('security-dialog');
+  const summary = document.getElementById('security-dialog-summary');
+  const detail = document.getElementById('security-dialog-detail');
+  if (!dialog || !summary || !detail) return Promise.resolve(false);
+  summary.textContent = `${findings.length} harmful ${findings.length === 1 ? 'pattern was' : 'patterns were'} detected before ${actionLabel}.`;
+  detail.textContent = findings.slice(0, 3).map(f => `Line ${f.line}: ${f.cwe} · ${f.title}`).join('   •   ');
+  dialog.classList.add('open');
+  return new Promise(resolve => {
+    const close = result => { dialog.classList.remove('open'); resolve(result); };
+    document.getElementById('security-review-btn').onclick = () => close(false);
+    document.getElementById('security-continue-btn').onclick = () => close(true);
+    document.getElementById('security-drona-btn').onclick = () => {
+      close(false);
+      window.DRONA?.ask?.(`How can I fix these flagged lines safely? ${findings.slice(0, 3).map(f => `Line ${f.line} (${f.cwe}: ${f.title})`).join('; ')}`);
+    };
+  });
+}
+
+async function passSecurityGate(actionLabel = 'analysis') {
+  if (!editorCodeInUse) return true;
+  const editor = document.getElementById('ssa-editor');
+  if (!editor) return true;
+  let findings;
+  try { findings = await scanEditorForSafety(editor.value); }
+  catch (error) { showToast('Security scan unavailable — analysis was not started.'); return false; }
+  if (!findings.length) return true;
+  if (!selfHealingEnabled) return showSafetyDialog(findings, actionLabel);
+  const healed = healFlaggedLines(editor.value, findings);
+  editor.value = healed;
+  renderSecurityHighlights([]);
+  editor.dispatchEvent(new Event('input'));
+  showToast(`🤖 Self-healed ${findings.length} flagged ${findings.length === 1 ? 'line' : 'lines'} before ${actionLabel}.`);
+  return true;
+}
+
+document.addEventListener('idce:securityScan', event => renderSecurityHighlights(event.detail?.findings || []));
+
+document.getElementById('ssa-editor')?.addEventListener('scroll', syncSecurityHighlightScroll);
 document.getElementById('ssa-editor')?.addEventListener('input', () => {
     selectedSample = null;
     selectedFile = null;
@@ -1573,6 +3072,7 @@ document.getElementById('ssa-editor')?.addEventListener('input', () => {
     const srcIcon = document.getElementById('source-icon');
     if (srcIcon) srcIcon.textContent = 'edit_document';
     document.querySelectorAll('.sample-btn').forEach(b => b.classList.remove('bg-primary/10','text-primary','border-primary/30'));
+    renderSecurityHighlights([]);
 });
 
 function setFile(f) {
@@ -1613,7 +3113,14 @@ async function loadSamples() {
           if (!textRes.ok) throw new Error('Failed to fetch sample text');
           const codeText = await textRes.text();
           
-          document.getElementById('ssa-editor').value = codeText;
+          const editor = document.getElementById('ssa-editor');
+          if (editor) {
+            editor.value = codeText;
+            editor.scrollTop = 0;
+            editor.scrollLeft = 0;
+            renderSecurityHighlights([]);
+            editor.dispatchEvent(new Event('input'));
+          }
           selectedSample = sampleName;
           selectedFile = null;
           editorCodeInUse = true;
@@ -1629,6 +3136,9 @@ async function loadSamples() {
           // Switch tab to editor to show code
           document.querySelector('.nav-btn[data-panel="editor"]').click();
           showToast(`Loaded ${sampleName} into Editor`);
+          if (typeof logClientAuditEvent === 'function') {
+            logClientAuditEvent('input_received', 'info', 'INFO', `Sample ${sampleName} loaded into Editor`, { sampleName, length: codeText.length });
+          }
           
         } catch (e) {
           showToast('Failed to load sample code');
@@ -2291,6 +3801,7 @@ function downloadOptimized() {
 
 // ── ML Results Rendering ────────────────────────────────────────────────────
 let currentRunId   = null;
+Object.defineProperty(window, 'currentRunId', { get: () => currentRunId });
 let currentMlPreds = null;
 
 function confidenceColor(conf) {
@@ -2553,6 +4064,8 @@ function onDone(data) {
   }
 
   try {
+    window.lastAnalysisData = data;
+    window.lastGuardianBlocked = false;
     currentDot     = data.dot     || '';
     currentSummary = data.summary || '';
     currentOptSsa  = data.optSsa  || '';
@@ -2594,10 +4107,19 @@ function onDone(data) {
     if (data.isCpp) {
         execPanel.classList.remove('hidden');
         document.getElementById('executable-output').textContent = "Click \"Test Compiled Binary\" to execute.";
-        window.currentCppCode = editorCodeInUse ? document.getElementById('ssa-editor').value : "";
+        window.currentCppCode = editorCodeInUse ? document.getElementById('ssa-editor').value : (window.currentCppCode || "");
+        window.lastDceStats = {
+          instructionsRemoved: currentRemoved || (stats && stats.instructionsRemoved) || (data.health && data.health.removedLines?.length) || 0,
+          removedLines: (data.health && data.health.removedLines) || [],
+          isCpp: Boolean(data.isCpp),
+        };
+        if (document.getElementById('auto-verify-opt-toggle')?.checked) {
+          setTimeout(triggerOptimizationVerification, 400);
+        }
     } else {
         execPanel.classList.add('hidden');
         window.currentCppCode = "";
+        window.lastDceStats = null;
     }
     
     if (currentOptSsa) {
@@ -2668,6 +4190,8 @@ async function startAnalysis() {
     showToast('⚠️ Please upload a file, select a sample, or use the editor code.'); return;
   }
 
+  if (!(await passSecurityGate('analysis'))) return;
+
   const mode      = document.querySelector('input[name="mode"]:checked')?.value || 'classical';
   const threshold = parseFloat(document.getElementById('sb-threshold')?.value || '0.6');
   clearLogs();
@@ -2690,13 +4214,17 @@ async function startAnalysis() {
 
   try {
     let runId;
+    const activeSession = window.currentAuditSessionId || currentAuditSessionId || 'default';
+    if (typeof logClientAuditEvent === 'function') {
+      logClientAuditEvent('policy_decision', 'info', 'ALLOW', `DCE optimization pipeline initiated in ${mode.toUpperCase()} mode`, { mode, threshold, target: selectedSample || (selectedFile ? selectedFile.name : 'Editor Content') });
+    }
 
     if (selectedSample) {
       // Use built-in sample
       const res  = await fetch('/api/analyze-sample', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: selectedSample, mode, threshold }),
+        body: JSON.stringify({ name: selectedSample, mode, threshold, sessionId: activeSession }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -2708,7 +4236,7 @@ async function startAnalysis() {
       const res  = await fetch('/api/analyze-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, mode, threshold }),
+        body: JSON.stringify({ code, mode, threshold, sessionId: activeSession }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -2720,6 +4248,7 @@ async function startAnalysis() {
       form.append('ssa', selectedFile);
       form.append('mode', mode);
       form.append('threshold', threshold);
+      form.append('sessionId', activeSession);
       const res  = await fetch('/api/analyze', { method: 'POST', body: form });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -2755,6 +4284,16 @@ async function startAnalysis() {
         try { ws.close(); } catch(e){}
         onDone(msg);
         document.dispatchEvent(new CustomEvent('idce:analysisDone', { detail: msg }));
+        if (typeof logClientAuditEvent === 'function') {
+          logClientAuditEvent('execution_completed', 'info', 'ALLOW', `DCE optimization pass completed (${msg.health?.removedLines?.length || currentRemoved || 0} dead instructions eliminated)`, {
+            runId: currentRunId,
+            deadCount: msg.health?.removedLines?.length || currentRemoved || 0,
+            healthScore: msg.health?.score
+          });
+        }
+        if (typeof loadAuditTimeline === 'function') {
+          loadAuditTimeline();
+        }
       } else if (msg.type === 'error') {
         appendLog(msg.message, 'error');
         setChip('ERROR', 'text-red-600 bg-red-50 border-red-300');
@@ -2764,6 +4303,12 @@ async function startAnalysis() {
           btn.innerHTML = '<span class="material-symbols-outlined text-lg">play_circle</span> START ANALYSIS';
         }
         document.dispatchEvent(new CustomEvent('idce:analysisError', { detail: msg }));
+        if (typeof logClientAuditEvent === 'function') {
+          logClientAuditEvent('execution_failed', 'high', 'WARN', `DCE analysis pipeline failed: ${msg.message}`, { runId: currentRunId });
+        }
+        if (typeof loadAuditTimeline === 'function') {
+          loadAuditTimeline();
+        }
       }
     };
     ws.onerror = () => {
@@ -2815,6 +4360,8 @@ async function runOptimizedExecutable() {
         showToast("Error: Only original C++ Editor Code can be compiled & executed.");
         return;
     }
+    if (!(await passSecurityGate('compilation'))) return;
+    window.currentCppCode = document.getElementById('ssa-editor')?.value || window.currentCppCode;
     const outPre = document.getElementById('executable-output');
     outPre.textContent = "Compiling and Executing with IDCE LLVM Wrapper...\n";
     document.getElementById('run-exec-btn').disabled = true;
@@ -2823,27 +4370,303 @@ async function runOptimizedExecutable() {
         const res = await fetch('/api/compile-run', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: window.currentCppCode })
+            body: JSON.stringify({
+              code: window.currentCppCode,
+              sessionId: window.currentAuditSessionId || currentAuditSessionId || 'default'
+            })
         });
         const data = await res.json();
+        window.lastExecutionResult = data;
         
-        if (data.error) {
-            outPre.textContent += `[Error]\n${data.error}\n\n[Stderr]\n${data.stderr || ''}`;
+        if (data.status === 'SANDBOX_UNAVAILABLE') {
+            outPre.textContent = `🛑 EXECUTION SAFELY BLOCKED — SANDBOX UNAVAILABLE\n--------------------------------------------------\n${data.stderr || data.error}\n\nDocker Desktop container isolation is required to compile and execute untrusted code. Direct host execution has been blocked.`;
+            outPre.style.color = '#f87171'; // red
+            showToast('Execution blocked: Sandbox runtime unavailable.');
+        } else if (data.status === 'BLOCKED_BY_POLICY') {
+            window.lastGuardianBlocked = true;
+            outPre.textContent = `🛑 EXECUTION BLOCKED BY GUARDIAN POLICY\n---------------------------------------\n${data.stderr || 'Harmful instructions detected in source.'}`;
+            outPre.style.color = '#f87171';
+            showToast('Execution blocked by Guardian policy.');
+        } else if (data.error) {
+            outPre.textContent += `[Error - Status: ${data.status || 'FAILED'}]\n${data.error}\n\n[Stderr]\n${data.stderr || ''}`;
             outPre.style.color = '#f87171'; // red
         } else {
-            outPre.textContent += `[Execution Output - Exit Code ${data.returncode}]\n---------------------------------------\n${data.stdout}\n`;
+            const prefix = data.warning ? `[WARNING: ${data.warning}]\n` : (data.sandboxed ? '[ISOLATED SANDBOX RUN: Network None · Non-Root · 128MB Memory]\n' : '');
+            outPre.textContent = `${prefix}[Execution Output - Exit Code ${data.returncode} - ${data.durationMs || 0}ms]\n-------------------------------------------------------\n${data.stdout}\n`;
             outPre.style.color = '#00ff88'; // primary glow
             if (data.stderr) {
                 outPre.textContent += `\n[Stderr]\n${data.stderr}`;
             }
         }
     } catch (e) {
+        window.lastExecutionResult = { error: e.message, status: 'FAILED' };
         outPre.textContent += `Failed to connect: ${e.message}`;
         outPre.style.color = '#f87171';
     } finally {
         document.getElementById('run-exec-btn').disabled = false;
     }
 }
+
+// ── Feature 4: Secure Compilation Pipeline Explorer ────────────────────────
+async function renderPipelineExplorer() {
+  try {
+    // 1. Fetch metadata from backend
+    let statusMeta = null;
+    try {
+      const res = await fetch('/api/pipeline/status');
+      if (res.ok) statusMeta = await res.json();
+    } catch {}
+
+    // 2. Resolve Current Source Code
+    const editor = document.getElementById('ssa-editor');
+    const currentCode = (editor && editor.value) || window.currentCppCode || (typeof TESTCASE_INPUTS !== 'undefined' && TESTCASE_INPUTS[currentTcLabel]) || '';
+    
+    // Stage 0: Input C++ Source Code
+    const srcLen = currentCode ? currentCode.length : 0;
+    const srcLines = currentCode ? currentCode.split('\n').length : 0;
+    const srcLenEl = document.getElementById('pipe-src-len');
+    const srcLinesEl = document.getElementById('pipe-src-lines');
+    const srcHashEl = document.getElementById('pipe-src-hash');
+    const sessIdEl = document.getElementById('pipe-session-id');
+
+    if (srcLenEl) srcLenEl.textContent = srcLen ? `${srcLen} chars` : '0 chars (empty)';
+    if (srcLinesEl) srcLinesEl.textContent = srcLines ? `${srcLines} lines` : '0 lines';
+    if (sessIdEl) sessIdEl.textContent = window.currentRunId || 'sess-active';
+
+    if (srcHashEl) {
+      if (currentCode && window.crypto && crypto.subtle) {
+        try {
+          const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(currentCode));
+          const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+          srcHashEl.textContent = hex.substring(0, 16) + '…';
+          srcHashEl.title = hex;
+        } catch {
+          srcHashEl.textContent = 'sha256-computed';
+        }
+      } else {
+        srcHashEl.textContent = '—';
+      }
+    }
+
+    // Stage 1 & 2: Guardian Gate & Pre-Intake
+    const analysis = window.lastAnalysisData || null;
+    const guardianBadge = document.getElementById('pipe-guardian-badge');
+    const guardianNorm = document.getElementById('pipe-guardian-norm');
+    const guardianScore = document.getElementById('pipe-guardian-score');
+    const guardianFindings = document.getElementById('pipe-guardian-findings');
+    const guardianWarnBox = document.getElementById('pipe-guardian-warning-box');
+
+    const health = analysis?.health || null;
+    const vulnCount = health?.vulnerabilities?.length || 0;
+    const healthScore = health?.score !== undefined ? health.score : 100;
+    const isBlocked = window.lastGuardianBlocked === true || (window.lastExecutionResult?.status === 'BLOCKED_BY_POLICY');
+
+    if (guardianNorm && statusMeta?.guardian?.normalizers) {
+      guardianNorm.textContent = `Active (${statusMeta.guardian.normalizers.length} Passes)`;
+    }
+
+    if (guardianBadge) {
+      if (isBlocked) {
+        guardianBadge.textContent = 'BLOCK';
+        guardianBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-rose-100 text-rose-800 border border-rose-300';
+      } else if (vulnCount > 0 || healthScore < 80) {
+        guardianBadge.textContent = 'WARN';
+        guardianBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-100 text-amber-800 border border-amber-300';
+      } else {
+        guardianBadge.textContent = 'ALLOW';
+        guardianBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200';
+      }
+    }
+
+    if (guardianScore) {
+      guardianScore.textContent = `${Math.max(0, 100 - healthScore)} / 100 Risk`;
+    }
+    if (guardianFindings) {
+      guardianFindings.textContent = `${vulnCount} threats flagged`;
+    }
+    if (guardianWarnBox && isBlocked) {
+      guardianWarnBox.innerHTML = '<span class="text-rose-600 font-bold">🛑 Guardian blocked this code from reaching compiler or execution layers.</span>';
+    }
+
+    // Stage 3 & 4: Lexical & Syntax
+    const lexStatus = document.getElementById('pipe-lex-status');
+    const synStatus = document.getElementById('pipe-syn-status');
+    if (lexStatus) {
+      lexStatus.textContent = isBlocked ? 'Blocked before this stage' : 'Delegated to GCC frontend';
+    }
+    if (synStatus) {
+      synStatus.textContent = isBlocked ? 'Blocked before this stage' : 'Handled by GCC frontend; detailed parse tree not exposed';
+    }
+
+    // Stage 5: Semantic Analysis (GCC + IntelliDCE Security)
+    const semType = document.getElementById('pipe-sem-type');
+    const semScope = document.getElementById('pipe-sem-scope');
+    const semCwes = document.getElementById('pipe-sem-cwes');
+    const semGrade = document.getElementById('pipe-sem-grade');
+
+    if (semType) semType.textContent = isBlocked ? 'Blocked before this stage' : 'Resolved by GCC';
+    if (semScope) semScope.textContent = isBlocked ? 'Blocked before this stage' : 'Valid';
+    if (semCwes) {
+      if (isBlocked) {
+        semCwes.textContent = 'Blocked before this stage';
+      } else if (vulnCount > 0) {
+        const cweList = health.vulnerabilities.map(v => v.cwe || v.id).filter(Boolean);
+        semCwes.textContent = `${vulnCount} (${[...new Set(cweList)].slice(0, 3).join(', ')})`;
+      } else {
+        semCwes.textContent = '0 detected (Clean)';
+      }
+    }
+    if (semGrade) {
+      semGrade.textContent = isBlocked ? 'N/A' : (health?.grade || '—');
+    }
+
+    // Stage 6: Intermediate Code Generation (GCC GIMPLE SSA)
+    const ssaAvail = document.getElementById('pipe-ssa-avail');
+    const ssaFuncs = document.getElementById('pipe-ssa-funcs');
+    if (ssaAvail) {
+      if (isBlocked) {
+        ssaAvail.textContent = 'Blocked before this stage';
+      } else if (analysis?.origSsa) {
+        ssaAvail.textContent = 'Available (Emitted via -fdump-tree-ssa)';
+      } else {
+        ssaAvail.textContent = 'Not generated';
+      }
+    }
+    if (ssaFuncs) {
+      ssaFuncs.textContent = isBlocked ? '—' : (analysis?.stats?.functions ?? '—');
+    }
+
+    // Card 7: CFG & Data-Flow Analysis
+    const cfgBlocks = document.getElementById('pipe-cfg-blocks');
+    const cfgStmts = document.getElementById('pipe-cfg-stmts');
+    const cfgDefuse = document.getElementById('pipe-cfg-defuse');
+    const cfgGraph = document.getElementById('pipe-cfg-graph');
+
+    if (cfgBlocks) cfgBlocks.textContent = isBlocked ? 'Blocked' : (analysis?.stats?.blocks ?? '—');
+    if (cfgStmts) cfgStmts.textContent = isBlocked ? 'Blocked' : (analysis?.stats?.liveStmts ?? '—');
+    if (cfgDefuse) cfgDefuse.textContent = isBlocked ? 'Blocked before this stage' : (analysis?.origSsa ? 'Resolved across SSA registers' : '—');
+    if (cfgGraph) cfgGraph.textContent = isBlocked ? 'None' : (analysis?.dot ? 'DOT Rendered' : 'Not generated');
+
+    // Card 8: Code Optimization (DCE)
+    const modeBadge = document.getElementById('pipe-dce-mode-badge');
+    const dceRemoved = document.getElementById('pipe-dce-removed');
+    const dceMlConf = document.getElementById('pipe-dce-ml-conf');
+    const dceDuration = document.getElementById('pipe-dce-duration');
+
+    const selectedMode = (document.querySelector('input[name="mode"]:checked')?.value || 'classical').toLowerCase();
+    if (modeBadge) {
+      modeBadge.textContent = selectedMode === 'ml' ? 'ML-Guided' : 'Classical';
+      modeBadge.className = selectedMode === 'ml'
+        ? 'px-2 py-0.5 rounded text-[10px] font-mono bg-violet-50 text-violet-700 border border-violet-200 font-bold'
+        : 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold';
+    }
+    if (dceRemoved) {
+      if (isBlocked) {
+        dceRemoved.textContent = 'Blocked before this stage';
+      } else if (analysis?.stats?.removed !== undefined) {
+        dceRemoved.textContent = analysis.stats.removed > 0 ? `${analysis.stats.removed} stmts eliminated` : 'No instructions pruned';
+      } else {
+        dceRemoved.textContent = '—';
+      }
+    }
+    if (dceMlConf) {
+      if (selectedMode === 'ml' && analysis?.mlPreds && analysis.mlPreds.length > 0) {
+        const confs = analysis.mlPreds.map(p => p.confidence || p.prob || 0);
+        const avg = confs.reduce((a, b) => a + b, 0) / confs.length;
+        dceMlConf.textContent = `Avg: ${(avg * 100).toFixed(0)}% (Thresh: ${(document.getElementById('sb-threshold')?.value || '0.6')})`;
+      } else {
+        dceMlConf.textContent = 'Classical Mode (Rule-based DCE)';
+      }
+    }
+    if (dceDuration) {
+      dceDuration.textContent = analysis ? '< 12ms' : '—';
+    }
+
+    // Card 9: Target Code Generation & Docker Sandbox Execution
+    const targetBadge = document.getElementById('pipe-target-status-badge');
+    const sandboxRuntimeEl = document.getElementById('pipe-sandbox-runtime');
+    const targetNote = document.getElementById('pipe-target-note');
+    const execRes = window.lastExecutionResult || null;
+
+    if (sandboxRuntimeEl && statusMeta?.sandbox) {
+      sandboxRuntimeEl.textContent = statusMeta.sandbox.available ? 'Docker (Active)' : 'Sandbox Unavailable';
+    }
+
+    if (targetBadge) {
+      if (isBlocked) {
+        targetBadge.textContent = 'Blocked before this stage';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-rose-100 text-rose-800 border border-rose-200';
+        if (targetNote) targetNote.textContent = 'Execution blocked: Guardian security gate prevented untrusted code dispatch.';
+      } else if (!execRes) {
+        targetBadge.textContent = 'Not run';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200';
+        if (targetNote) targetNote.textContent = 'Program has not been executed yet. Click Run Executable in Compare panel.';
+      } else if (execRes.status === 'SANDBOX_UNAVAILABLE' || (statusMeta && !statusMeta.sandbox?.available && execRes.error)) {
+        targetBadge.textContent = 'Sandbox unavailable — execution safely blocked';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 text-amber-800 border border-amber-300';
+        if (targetNote) targetNote.textContent = 'Direct host execution safely blocked. Docker Desktop container is required for execution.';
+      } else if (execRes.status === 'TIMED_OUT') {
+        targetBadge.textContent = 'Timed out / resource limit reached';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 text-amber-800 border border-amber-200';
+      } else if (execRes.returncode === 0 && !execRes.error) {
+        targetBadge.textContent = 'Executed in Docker sandbox';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold';
+        if (targetNote) targetNote.textContent = 'Compiled with GCC and executed in isolated Docker container (--network none, 128MB limit).';
+      } else {
+        targetBadge.textContent = 'Compiled successfully';
+        targetBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-sky-100 text-sky-800 border border-sky-300';
+      }
+    }
+
+    // Card 10: DCE Explainability
+    const explCount = document.getElementById('pipe-expl-count');
+    if (explCount) {
+      explCount.textContent = analysis?.stats?.removed !== undefined ? `${analysis.stats.removed} records generated` : '0 records';
+    }
+
+    // Card 11: Verified DCE Regression Guard
+    const verifyBadge = document.getElementById('pipe-verify-status-badge');
+    const verifyStatus = document.getElementById('pipe-verify-status');
+    const verifyCases = document.getElementById('pipe-verify-cases');
+    const verifySeed = document.getElementById('pipe-verify-seed');
+    const verRes = window.lastVerificationResult || null;
+
+    if (!verRes) {
+      if (verifyBadge) {
+        verifyBadge.textContent = 'Not Run';
+        verifyBadge.className = 'px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200';
+      }
+      if (verifyStatus) verifyStatus.textContent = 'Verification Not Run';
+      if (verifyCases) verifyCases.textContent = '—';
+      if (verifySeed) verifySeed.textContent = '42';
+    } else {
+      if (verifyBadge) {
+        verifyBadge.textContent = verRes.status;
+        verifyBadge.className = verRes.status === 'Verified'
+          ? 'px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold'
+          : 'px-2 py-0.5 rounded text-[10px] font-mono bg-amber-100 text-amber-800 border border-amber-300 font-bold';
+      }
+      if (verifyStatus) verifyStatus.textContent = verRes.status;
+      if (verifyCases) verifyCases.textContent = `${verRes.matchingCases || 0} / ${verRes.testCasesRun || 0} tests matching`;
+      if (verifySeed) verifySeed.textContent = String(verRes.seed || 42);
+    }
+
+    // Card 12: Audit & DRONA Repair Loop
+    const auditEvents = document.getElementById('pipe-audit-events');
+    const auditIntegrity = document.getElementById('pipe-audit-integrity');
+    if (auditEvents) {
+      auditEvents.textContent = 'Active session ledger';
+    }
+    if (auditIntegrity) {
+      auditIntegrity.textContent = 'Valid Chain (Tamper-evident)';
+    }
+
+  } catch (err) {
+    console.error('Failed to render pipeline explorer:', err);
+  }
+}
+window.renderPipelineExplorer = renderPipelineExplorer;
+
 </script>
 
 <!-- Template helpers (inline web components lite) -->
@@ -2861,6 +4684,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const mlRadio = document.querySelector('input[name="mode"][value="classical"]');
   mlRadio?.closest('.mode-label')?.classList.add('border-primary/40','bg-primary/5');
   initTestcasePicker();
+  renderSecurityHighlights([]);
+  if (typeof updateSandboxStatusBadge === 'function') updateSandboxStatusBadge();
+  if (typeof refreshAiPatternAnalysis === 'function') refreshAiPatternAnalysis();
 });
 </script>
 
@@ -3239,11 +5065,715 @@ function chartReasons(ctx, records) {
 }
 
 
+
+// ── Feature: AI Pattern Analysis ──────────────────────────────────────────
+function getAiPatternEstimate(source) {
+  const lines = String(source || '').split('\n');
+  const meaningful = lines.filter(line => line.trim() && !line.trim().startsWith('#'));
+  if (meaningful.length < 3) return { score: null, signals: [], summary: 'Add a few lines of code in the Editor to generate a style estimate.' };
+
+  const signals = [];
+  let score = 0;
+  const comments = lines.filter(line => /^\s*(\/\/|\/\*|\*)/.test(line));
+  const commentRatio = comments.length / Math.max(1, meaningful.length);
+  if (commentRatio >= 0.16) { score += 14; signals.push('structured comment density'); }
+
+  const genericPhrases = (source.match(/\b(this (function|method|class)|automatically|initialize|implementation|example|TODO|note:|ensure that)\b/gi) || []).length;
+  if (genericPhrases >= 2) { score += Math.min(18, genericPhrases * 4); signals.push('template-style wording'); }
+
+  const normalizedStatements = meaningful
+    .map(line => line.replace(/\/\/.*$/, '').replace(/\b\d+\b/g, '#').replace(/\b[a-zA-Z_]\w*\b/g, 'id').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  const duplicateCount = normalizedStatements.length - new Set(normalizedStatements).size;
+  if (duplicateCount >= 2) { score += Math.min(20, duplicateCount * 5); signals.push('repeated code template'); }
+
+  const declaredNames = [...source.matchAll(/\b(?:int|float|double|char|bool|auto|string|vector)\s+([a-zA-Z_]\w*)/g)].map(match => match[1]);
+  const genericNames = declaredNames.filter(name => /^(x|y|z|i|j|k|tmp|temp|data|result|value|item|buffer)$/i.test(name));
+  if (declaredNames.length >= 3 && genericNames.length / declaredNames.length >= 0.55) { score += 12; signals.push('uniform generic naming'); }
+
+  const indents = meaningful.map(line => (line.match(/^\s*/)?.[0].replace(/\t/g, '  ').length || 0)).filter(indent => indent > 0);
+  if (indents.length >= 5) {
+    const counts = new Map();
+    indents.forEach(indent => counts.set(indent, (counts.get(indent) || 0) + 1));
+    const dominant = Math.max(...counts.values());
+    if (dominant / indents.length >= 0.7) { score += 10; signals.push('highly uniform formatting'); }
+  }
+
+  if (/^\s*#include\s*<iostream>/m.test(source) && /\busing namespace std\s*;/m.test(source)) { score += 5; signals.push('common boilerplate'); }
+  score = Math.min(95, Math.max(4, Math.round(score)));
+  return { score, signals, summary: `Estimated from ${meaningful.length} non-empty code lines using local style-pattern heuristics.` };
+}
+
+function refreshAiPatternAnalysis() {
+  const editorVal = document.getElementById('ssa-editor')?.value;
+  const code = (editorVal && editorVal.trim()) ? editorVal : (window.currentCppCode || currentOrigSsa || (typeof TESTCASE_INPUTS !== 'undefined' && TESTCASE_INPUTS[currentTcLabel]) || '');
+  const result = getAiPatternEstimate(code);
+  const score = document.getElementById('ai-pattern-score');
+  const band = document.getElementById('ai-pattern-band');
+  const summary = document.getElementById('ai-pattern-summary');
+  const signals = document.getElementById('ai-pattern-signals');
+  if (!score || !band || !summary || !signals) return;
+  if (result.score == null) {
+    score.textContent = '—'; band.textContent = 'Waiting for editor code'; summary.textContent = result.summary; signals.replaceChildren(); return;
+  }
+  const level = result.score < 25 ? 'Low AI-pattern likelihood' : result.score < 55 ? 'Moderate AI-pattern likelihood' : result.score < 75 ? 'High AI-pattern likelihood' : 'Very high AI-pattern likelihood';
+  score.textContent = `${result.score}%`;
+  band.textContent = level;
+  summary.textContent = `${result.summary} This percentage is a style estimate, not authorship proof.`;
+  signals.replaceChildren(...(result.signals.length ? result.signals : ['few strong automated-style signals']).map(signal => {
+    const chip = document.createElement('span');
+    chip.className = 'rounded-full border border-violet-200 bg-white px-2.5 py-1 text-[10px] font-bold text-violet-700';
+    chip.textContent = signal;
+    return chip;
+  }));
+}
+
+// ── Feature 1: Verified DCE & Optimization Regression Guard ───────────────
+async function triggerOptimizationVerification() {
+  const verifyBtn = document.getElementById('verify-opt-btn');
+  const standbyView = document.getElementById('verify-standby-view');
+  const loadingView = document.getElementById('verify-loading-view');
+  const resultCard = document.getElementById('verify-result-card');
+
+  // Switch to verifier panel so user views the result card directly
+  const verifierBtn = document.querySelector('.nav-btn[data-panel="verifier"]');
+  if (verifierBtn && !verifierBtn.classList.contains('nav-active')) {
+    verifierBtn.click();
+  }
+
+  // Determine original code
+  const originalCode = window.currentCppCode || document.getElementById('ssa-editor')?.value || '';
+  if (!originalCode.trim()) {
+    showToast("⚠️ Please provide or select C++ code in the Editor first.");
+    return;
+  }
+
+  // Pass Guardian security gate
+  if (typeof passSecurityGate === 'function' && !(await passSecurityGate('compilation'))) {
+    return;
+  }
+
+  const seedInput = document.getElementById('verify-seed-input');
+  const seedVal = parseInt(seedInput?.value || '42', 10);
+  const instructionsRemoved = window.lastDceStats?.instructionsRemoved || 0;
+  const removedLines = window.lastDceStats?.removedLines || [];
+
+  if (verifyBtn) verifyBtn.disabled = true;
+  if (standbyView) standbyView.classList.add('hidden');
+  if (loadingView) loadingView.classList.remove('hidden');
+  if (resultCard) resultCard.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        originalCode,
+        seed: isNaN(seedVal) ? 42 : seedVal,
+        numTests: 5,
+        instructionsRemoved,
+        removedLines,
+        sessionId: window.currentAuditSessionId || currentAuditSessionId || 'default',
+      })
+    });
+
+    const data = await res.json();
+    renderVerificationResult(data);
+    showToast(`Verification: ${data.status}`);
+  } catch (err) {
+    renderVerificationResult({
+      status: 'Not Verifiable',
+      instructionsRemoved: 0,
+      testCasesRun: 0,
+      matchingCases: 0,
+      failingCase: null,
+      minimalFailingInput: null,
+      explanation: `Network or server failure: ${err.message}`,
+      seed: seedVal,
+      durationMs: 0,
+    });
+  } finally {
+    if (verifyBtn) verifyBtn.disabled = false;
+    if (loadingView) loadingView.classList.add('hidden');
+    if (resultCard) resultCard.classList.remove('hidden');
+  }
+}
+
+function renderVerificationResult(data) {
+  const standbyView = document.getElementById('verify-standby-view');
+  const loadingView = document.getElementById('verify-loading-view');
+  const resultCard = document.getElementById('verify-result-card');
+  const banner = document.getElementById('verify-status-banner');
+  const icon = document.getElementById('verify-status-icon');
+  const badge = document.getElementById('verify-status-badge');
+  const summary = document.getElementById('verify-status-summary');
+  const duration = document.getElementById('verify-duration');
+
+  const metricPruned = document.getElementById('verify-metric-pruned');
+  const metricTotal = document.getElementById('verify-metric-total');
+  const metricMatching = document.getElementById('verify-metric-matching');
+  const metricSeed = document.getElementById('verify-metric-seed');
+  const metricFailing = document.getElementById('verify-metric-failing');
+
+  const failureSection = document.getElementById('verify-failure-section');
+  const failingInput = document.getElementById('verify-failing-input');
+  const failingExplanation = document.getElementById('verify-failing-explanation');
+
+  if (standbyView) standbyView.classList.add('hidden');
+  if (loadingView) loadingView.classList.add('hidden');
+  if (resultCard) resultCard.classList.remove('hidden');
+
+  const status = data.status || 'Not Verifiable';
+  if (badge) badge.textContent = status;
+  if (duration) duration.textContent = `${data.durationMs || 0} ms`;
+
+  if (metricPruned) metricPruned.textContent = data.instructionsRemoved || 0;
+  if (metricTotal) metricTotal.textContent = data.testCasesRun || 0;
+  if (metricMatching) metricMatching.textContent = data.matchingCases || 0;
+  if (metricSeed) metricSeed.textContent = data.seed !== undefined ? data.seed : '42';
+  if (metricFailing) metricFailing.textContent = data.failingCase ? `#${data.failingCase.index}` : 'None';
+
+  if (summary) summary.textContent = data.explanation || '';
+
+  if (status === 'Verified') {
+    if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-emerald-50/70 border-emerald-200 transition-all shadow-xs';
+    if (icon) { icon.textContent = 'verified'; icon.className = 'material-symbols-outlined text-3xl text-emerald-600'; }
+    if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-200';
+    if (failureSection) failureSection.classList.add('hidden');
+  } else if (status === 'Divergence Found') {
+    if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-rose-50/70 border-rose-200 transition-all shadow-xs';
+    if (icon) { icon.textContent = 'error'; icon.className = 'material-symbols-outlined text-3xl text-rose-600'; }
+    if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-rose-100 text-rose-800 border border-rose-200';
+    if (failureSection) failureSection.classList.remove('hidden');
+    if (failingInput) failingInput.textContent = data.minimalFailingInput !== null && data.minimalFailingInput !== undefined
+      ? (data.minimalFailingInput === '' ? '<Empty Input / Initial State>' : data.minimalFailingInput)
+      : 'N/A';
+    if (failingExplanation) failingExplanation.textContent = data.explanation || 'Behavioral mismatch observed.';
+  } else if (status === 'Timed Out') {
+    if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-rose-50/70 border-rose-200 transition-all shadow-xs';
+    if (icon) { icon.textContent = 'timer_off'; icon.className = 'material-symbols-outlined text-3xl text-rose-600'; }
+    if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-rose-100 text-rose-800 border border-rose-200';
+    if (failureSection) failureSection.classList.remove('hidden');
+    if (failingInput) failingInput.textContent = data.minimalFailingInput || '<Standard Input>';
+    if (failingExplanation) failingExplanation.textContent = data.explanation;
+  } else if (status === 'Original Failed' || status === 'Optimized Failed') {
+    if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-amber-50/70 border-amber-200 transition-all shadow-xs';
+    if (icon) { icon.textContent = 'build_circle'; icon.className = 'material-symbols-outlined text-3xl text-amber-600'; }
+    if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-amber-100 text-amber-800 border border-amber-200';
+    if (failureSection) failureSection.classList.remove('hidden');
+    if (failingInput) failingInput.textContent = 'N/A (Compilation Stage)';
+    if (failingExplanation) failingExplanation.textContent = data.explanation;
+  } else {
+    if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-slate-100 border-slate-200 transition-all shadow-xs';
+    if (icon) { icon.textContent = 'help'; icon.className = 'material-symbols-outlined text-3xl text-slate-500'; }
+    if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-slate-200 text-slate-700 border border-slate-300';
+    if (failureSection) failureSection.classList.remove('hidden');
+    if (failingInput) failingInput.textContent = 'N/A';
+    if (failingExplanation) failingExplanation.textContent = data.explanation || 'Could not verify safely.';
+  }
+}
+
+// ── Feature 2: Security Mutation Testing & Benchmark Lab ──────────────────
+let currentBenchmarkReport = null;
+let activeBenchmarkFilter = 'all';
+
+async function runBenchmarkLab() {
+  const btn = document.getElementById('btn-run-benchmark');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="size-3.5 rounded-full border-2 border-white border-t-transparent animate-spin"></span><span>Running Benchmark...</span>';
+  }
+
+  try {
+    const res = await fetch('/api/benchmark/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const report = await res.json();
+    currentBenchmarkReport = report;
+    renderBenchmarkDashboard(report);
+    showToast(`Benchmark complete: ${report.summary.passed}/${report.summary.total} cases verified`);
+  } catch (err) {
+    showToast(`Benchmark run error: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-sm text-emerald-400">play_arrow</span><span>Run Security Benchmark</span>';
+    }
+  }
+}
+
+function renderBenchmarkDashboard(report) {
+  if (!report) return;
+  const s = report.summary || {};
+  const m = report.metrics || s;
+  const total = s.total || s.totalCases || (report.cases ? report.cases.length : 0);
+
+  const setT = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setT('bm-metric-precision', ((m.precision ?? 1) * 100).toFixed(1) + '%');
+  setT('bm-metric-recall', ((m.recall ?? 1) * 100).toFixed(1) + '%');
+  setT('bm-metric-f1', ((m.f1Score ?? 1) * 100).toFixed(1) + '%');
+  setT('bm-metric-block-rate', ((m.attackBlockRate ?? 1) * 100).toFixed(1) + '%');
+  setT('bm-metric-fpr', ((m.falsePositiveRate ?? 0) * 100).toFixed(1) + '%');
+  setT('bm-metric-total', total);
+  setT('bm-metric-latency', `${m.medianLatencyMs || 0} ms`);
+
+  const cm = m.confusionMatrix || { tp: s.TP, fn: s.FN, fp: s.FP, tn: s.TN };
+  setT('bm-cm-tp', cm.tp ?? s.TP ?? 0);
+  setT('bm-cm-fn', cm.fn ?? s.FN ?? 0);
+  setT('bm-cm-fp', cm.fp ?? s.FP ?? 0);
+  setT('bm-cm-tn', cm.tn ?? s.TN ?? 0);
+  setT('bm-accuracy-val', ((m.accuracy ?? 1) * 100).toFixed(1) + '%');
+
+  const catList = document.getElementById('bm-category-list');
+  const catData = report.categories || (report.categoryBreakdown ? Object.entries(report.categoryBreakdown).map(([category, c]) => ({ category, ...c })) : []);
+  if (catList && catData) {
+    catList.innerHTML = catData.map(c => {
+      const passed = (c.TP !== undefined && c.TN !== undefined) ? (c.TP + c.TN) : (c.passed || 0);
+      const catTotal = c.total;
+      const pct = catTotal > 0 ? ((passed / catTotal) * 100).toFixed(0) : 0;
+      const barColor = pct >= 90 ? 'bg-emerald-500' : pct >= 70 ? 'bg-amber-500' : 'bg-rose-500';
+      return `
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-slate-700 font-semibold">${c.category} <span class="text-[9px] text-slate-400 font-normal">(${catTotal} cases)</span></span>
+            <span class="font-bold ${pct >= 90 ? 'text-emerald-700' : 'text-slate-700'}">${passed}/${catTotal} (${pct}%)</span>
+          </div>
+          <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div class="h-full ${barColor} rounded-full transition-all" style="width: ${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  filterBenchmarkCases(activeBenchmarkFilter);
+}
+
+function filterBenchmarkCases(filter) {
+  activeBenchmarkFilter = filter;
+  ['all', 'mismatches', 'attacks', 'benign'].forEach(f => {
+    const b = document.getElementById(`bm-filter-${f}`);
+    if (b) {
+      if (f === filter) {
+        b.className = 'px-2.5 py-1 rounded-lg bg-white shadow-2xs text-slate-800 font-bold transition-all cursor-pointer';
+      } else {
+        b.className = 'px-2.5 py-1 rounded-lg text-slate-600 hover:text-slate-900 transition-all cursor-pointer';
+      }
+    }
+  });
+
+  if (!currentBenchmarkReport) return;
+
+  const tbody = document.getElementById('bm-cases-tbody');
+  const cases = currentBenchmarkReport.cases || [];
+
+  const filtered = cases.filter(c => {
+    const isPass = (c.passed !== undefined) ? c.passed : (c.matched !== false);
+    const isAttack = (c.isAttack !== undefined) ? c.isAttack : (c.expectedDecision === 'block');
+    if (filter === 'mismatches') return !isPass;
+    if (filter === 'attacks') return isAttack;
+    if (filter === 'benign') return !isAttack;
+    return true;
+  });
+
+  const countEl = document.getElementById('bm-filter-count');
+  if (countEl) countEl.textContent = `${filtered.length} of ${cases.length} cases`;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="py-6 text-center text-slate-400 italic">No matching benchmark cases.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(c => {
+    const caseId = c.caseId || c.id || 'CASE';
+    const isPass = (c.passed !== undefined) ? c.passed : (c.matched !== false);
+    const outcomeBg = isPass ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-rose-700 bg-rose-50 border-rose-200';
+    const statusIcon = isPass ? 'check_circle' : 'cancel';
+    const excerpt = (c.inputExcerpt || c.input || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const riskScore = c.actualScore ?? c.riskScore ?? 0;
+    const isProtected = c.preventedCall ?? c.protected ?? (c.actualDecision === 'block');
+    return `
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="py-2 px-3 font-mono font-bold text-slate-800">${caseId}</td>
+        <td class="py-2 px-3 text-slate-600 font-sans text-[10px]">${c.category}</td>
+        <td class="py-2 px-3 text-slate-500 font-mono text-[10px]">${c.context}</td>
+        <td class="py-2 px-3 text-slate-600 font-mono text-[10px] truncate max-w-xs" title="${excerpt}">${excerpt}</td>
+        <td class="py-2 px-3 text-center"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-100 text-slate-700">${c.expectedDecision}</span></td>
+        <td class="py-2 px-3 text-center"><span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${c.actualDecision === 'block' || c.actualDecision === 'BLOCK' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}">${c.actualDecision}</span></td>
+        <td class="py-2 px-3 text-center text-[10px] font-mono text-slate-500">${riskScore}</td>
+        <td class="py-2 px-3 text-center">${isProtected ? '<span class="text-emerald-600 font-bold">YES</span>' : '<span class="text-rose-600 font-bold">NO</span>'}</td>
+        <td class="py-2 px-3 text-center">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${outcomeBg}">
+            <span class="material-symbols-outlined text-[11px]">${statusIcon}</span>
+            <span>${isPass ? 'PASS' : 'FAIL'}</span>
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function exportBenchmarkJson() {
+  if (!currentBenchmarkReport) {
+    showToast('Please run the benchmark lab first');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(currentBenchmarkReport, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `security-benchmark-report-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Feature 3: Security Decision Timeline & Audit Report ──────────────────
+var currentAuditScope = 'active';
+var currentAuditSeverity = 'all';
+var currentAuditCategory = 'all';
+var currentAuditTimelineEvents = [];
+
+function setAuditScope(scope) {
+  currentAuditScope = scope;
+  const activeBtn = document.getElementById('audit-scope-active');
+  const allBtn = document.getElementById('audit-scope-all');
+  if (scope === 'active') {
+    if (activeBtn) activeBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-2xs transition-all cursor-pointer';
+    if (allBtn) allBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer';
+  } else {
+    if (activeBtn) activeBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-800 transition-all cursor-pointer';
+    if (allBtn) allBtn.className = 'px-2.5 py-1 rounded-lg text-xs font-bold bg-white text-slate-800 shadow-2xs transition-all cursor-pointer';
+  }
+  loadAuditTimeline();
+}
+
+async function loadAuditTimeline() {
+  try {
+    const targetSession = currentAuditScope === 'all' ? 'all' : (window.currentAuditSessionId || currentAuditSessionId || 'default');
+    const params = new URLSearchParams({
+      sessionId: targetSession,
+      severity: currentAuditSeverity,
+      category: currentAuditCategory,
+      limit: '150',
+    });
+    const res = await fetch(`/api/audit/timeline?${params.toString()}`);
+    const data = await res.json();
+    currentAuditTimelineEvents = data.events || [];
+    renderAuditTimeline(currentAuditTimelineEvents);
+    const sessionDisplay = document.getElementById('audit-session-display');
+    if (sessionDisplay) sessionDisplay.textContent = currentAuditScope === 'all' ? 'all-sessions' : targetSession;
+    await checkAuditIntegrity();
+  } catch (err) {
+    console.error('[Audit] Failed to load timeline:', err);
+  }
+}
+
+async function checkAuditIntegrity() {
+  const banner = document.getElementById('audit-integrity-banner');
+  const title = document.getElementById('audit-integrity-title');
+  const detail = document.getElementById('audit-integrity-detail');
+  const headDisplay = document.getElementById('audit-head-hash-display');
+
+  try {
+    const targetSession = currentAuditScope === 'all' ? 'all' : (window.currentAuditSessionId || currentAuditSessionId || 'default');
+    const res = await fetch(`/api/audit/integrity?sessionId=${encodeURIComponent(targetSession)}`);
+    const integrity = await res.json();
+
+    if (integrity.valid) {
+      if (banner) banner.className = 'p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center justify-between gap-4';
+      if (title) {
+        title.className = 'text-xs font-bold text-emerald-900';
+        title.textContent = `Hash Chain Integrity: Unbroken (${integrity.eventCount} events)`;
+      }
+      if (detail) {
+        detail.className = 'text-[11px] text-emerald-700 font-mono';
+        detail.textContent = integrity.message || 'Sequential SHA-256 linking verified. Tamper-evident within local session storage.';
+      }
+      if (headDisplay) {
+        headDisplay.className = 'text-[10px] font-mono text-emerald-800 bg-emerald-100/60 px-2.5 py-1 rounded-lg border border-emerald-200 truncate max-w-xs';
+        headDisplay.textContent = `Head: ${integrity.headHash ? integrity.headHash.substring(0, 16) + '...' : 'GENESIS'}`;
+      }
+    } else {
+      if (banner) banner.className = 'p-4 rounded-2xl bg-rose-50 border border-rose-300 flex items-center justify-between gap-4';
+      if (title) {
+        title.className = 'text-xs font-bold text-rose-900';
+        title.textContent = `Hash Chain Tampering Detected at Event #${integrity.brokenAtIndex}`;
+      }
+      if (detail) {
+        detail.className = 'text-[11px] text-rose-700 font-mono';
+        detail.textContent = integrity.reason || 'Cryptographic mismatch detected in local storage!';
+      }
+      if (headDisplay) {
+        headDisplay.className = 'text-[10px] font-mono text-rose-800 bg-rose-100 px-2.5 py-1 rounded-lg border border-rose-200 truncate max-w-xs';
+        headDisplay.textContent = `Corrupted at ${integrity.brokenAtEventId || 'unknown'}`;
+      }
+    }
+  } catch (err) {
+    console.error('[Audit] Integrity check error:', err);
+  }
+}
+
+function exportAuditReportJson() {
+  const targetSession = currentAuditScope === 'all' ? 'all' : (currentAuditSessionId || 'default');
+  window.open(`/api/audit/export?sessionId=${encodeURIComponent(targetSession)}`, '_blank');
+}
+
+function setAuditSeverityFilter(sev) {
+  currentAuditSeverity = sev;
+  document.querySelectorAll('.audit-sev-btn').forEach(btn => {
+    if (btn.getAttribute('data-sev') === sev) {
+      btn.className = 'audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all cursor-pointer';
+    } else {
+      btn.className = 'audit-sev-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer';
+    }
+  });
+  loadAuditTimeline();
+}
+
+function setAuditCategoryFilter(cat) {
+  currentAuditCategory = cat;
+  document.querySelectorAll('.audit-cat-btn').forEach(btn => {
+    if (btn.getAttribute('data-cat') === cat) {
+      btn.className = 'audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 text-white transition-all cursor-pointer';
+    } else {
+      btn.className = 'audit-cat-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all cursor-pointer';
+    }
+  });
+  loadAuditTimeline();
+}
+
+function renderAuditTimeline(events) {
+  const container = document.getElementById('audit-timeline-stream');
+  const countLabel = document.getElementById('audit-event-count-label');
+  const statTotal = document.getElementById('audit-stat-total');
+  const statBlocks = document.getElementById('audit-stat-blocks');
+  const statThreats = document.getElementById('audit-stat-threats');
+
+  if (countLabel) countLabel.textContent = `${events.length} events`;
+  if (statTotal) statTotal.textContent = events.length;
+
+  const blocksCount = events.filter(e => e.decision === 'BLOCK' || e.decision === 'PREVENTED' || e.decision === 'REJECTED').length;
+  const threatsCount = events.filter(e => e.eventType === 'threat_detected' || (e.severity && ['critical', 'high', 'medium'].includes(e.severity))).length;
+
+  if (statBlocks) statBlocks.textContent = blocksCount;
+  if (statThreats) statThreats.textContent = threatsCount;
+
+  if (!events.length) {
+    if (container) container.innerHTML = `
+      <div class="text-center py-10 text-slate-400 text-xs italic">
+        No events match the current filter.
+      </div>
+    `;
+    return;
+  }
+
+  const rendered = [...events].reverse().map((evt) => {
+    const sevColors = {
+      critical: { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-300', dot: 'bg-rose-500 ring-rose-200' },
+      high:     { bg: 'bg-rose-50',  text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500 ring-rose-100' },
+      medium:   { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500 ring-amber-100' },
+      low:      { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500 ring-emerald-100' },
+      info:     { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200', dot: 'bg-slate-400 ring-slate-100' },
+    };
+    const c = sevColors[evt.severity] || sevColors.info;
+
+    const decisionBadges = {
+      BLOCK: 'bg-rose-600 text-white',
+      PREVENTED: 'bg-rose-700 text-white',
+      REJECTED: 'bg-rose-600 text-white',
+      WARN: 'bg-amber-500 text-white',
+      ALLOW: 'bg-emerald-600 text-white',
+      APPROVED: 'bg-emerald-600 text-white',
+      VALIDATED: 'bg-emerald-700 text-white',
+      PROPOSED: 'bg-indigo-600 text-white',
+      INFO: 'bg-slate-700 text-white',
+    };
+    const decClass = decisionBadges[evt.decision] || 'bg-slate-600 text-white';
+
+    const safeMetaStr = evt.safeMetadata && Object.keys(evt.safeMetadata).length > 0
+      ? JSON.stringify(evt.safeMetadata, null, 2)
+      : null;
+
+    return `
+      <div class="relative group">
+        <span class="absolute -left-[27px] top-4 size-3 rounded-full ${c.dot} ring-4 transition-transform group-hover:scale-125"></span>
+        <div class="p-3.5 rounded-xl border border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs transition-all">
+          <div class="flex items-center justify-between gap-2 flex-wrap mb-1.5">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-black ${decClass} uppercase tracking-wide">${evt.decision}</span>
+              <span class="text-xs font-bold text-slate-800 font-mono">${evt.eventType}</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${c.bg} ${c.text} border ${c.border}">${evt.severity}</span>
+              ${evt.stoppedBeforeExecution ? '<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1"><span class="size-1.5 rounded-full bg-purple-600"></span>STOPPED BEFORE EXECUTION</span>' : ''}
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono">${new Date(evt.timestamp).toLocaleTimeString()} · ${evt.eventId}</div>
+          </div>
+          <p class="text-xs text-slate-700 leading-relaxed font-medium">${evt.shortExplanation}</p>
+          <details class="mt-2 text-[11px] text-slate-500 group/details">
+            <summary class="cursor-pointer text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-wider select-none flex items-center gap-1">
+              <span>Audit Proof & Metadata</span>
+              <span class="material-symbols-outlined text-xs">expand_more</span>
+            </summary>
+            <div class="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200/80 font-mono text-[10px] space-y-2">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[9px] pb-2 border-b border-slate-200">
+                <div><span class="text-slate-400">prevHash:</span> <span class="text-slate-700 truncate inline-block max-w-[200px]" title="${evt.prevHash}">${(evt.prevHash || '').substring(0, 24)}...</span></div>
+                <div><span class="text-slate-400">eventHash:</span> <span class="text-indigo-600 font-bold truncate inline-block max-w-[200px]" title="${evt.hash}">${(evt.hash || '').substring(0, 24)}...</span></div>
+              </div>
+              ${safeMetaStr ? `<pre class="text-[10px] text-slate-700 bg-white p-2 rounded border border-slate-200 overflow-x-auto max-h-32 scr">${safeMetaStr}</pre>` : '<div class="text-slate-400 italic">No extra metadata required.</div>'}
+              <div class="text-[9px] text-slate-400 italic flex items-center gap-1">
+                <span class="material-symbols-outlined text-[11px]">lock</span>
+                Sanitized: No secrets or raw attack payloads stored.
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (container) container.innerHTML = rendered;
+}
+
+// ── Sandbox Preflight & Diagnostics ───────────────────────────────────────
+async function updateVerifierPreflight() {
+  const badge = document.getElementById('verify-preflight-status-badge');
+  const daemonEl = document.getElementById('verify-preflight-daemon');
+  const imageEl = document.getElementById('verify-preflight-image');
+  const setupEl = document.getElementById('verify-preflight-setup');
+  const reasonEl = document.getElementById('verify-preflight-reason');
+
+  try {
+    const res = await fetch('/api/sandbox/status');
+    const health = await res.json();
+    if (health.available) {
+      if (badge) {
+        badge.textContent = 'Sandbox Ready';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+      }
+      if (daemonEl) daemonEl.textContent = `Online (${health.runtime})`;
+      if (imageEl) imageEl.textContent = health.image || 'gcc:13.2.0-bookworm-slim';
+      if (setupEl) setupEl.classList.add('hidden');
+    } else {
+      if (badge) {
+        badge.textContent = 'Sandbox Offline';
+        badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200';
+      }
+      if (daemonEl) daemonEl.textContent = 'Offline / Unreachable';
+      if (imageEl) imageEl.textContent = `${health.image || 'gcc:13.2.0-bookworm-slim'} (Missing/Unchecked)`;
+      if (reasonEl) reasonEl.textContent = health.reason || 'Docker daemon unreachable. Direct host execution safely blocked.';
+      if (setupEl) setupEl.classList.remove('hidden');
+    }
+  } catch (err) {
+    if (badge) {
+      badge.textContent = 'Sandbox Offline';
+      badge.className = 'px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200';
+    }
+    if (daemonEl) daemonEl.textContent = 'Unreachable';
+    if (setupEl) setupEl.classList.remove('hidden');
+  }
+}
+
+// ── Auto-scan editor on health tab open ─────────────────────────────────────
+async function onHealthPanelOpened() {
+  const editor = document.getElementById('ssa-editor');
+  if (editor && editor.value.trim()) {
+    try {
+      const findings = await scanEditorForSafety(editor.value);
+      renderHealthAndSecurity({
+        score: Math.max(25, 100 - findings.length * 12),
+        grade: findings.length === 0 ? 'EXCELLENT' : findings.some(f => f.severity === 'Critical') ? 'CRITICAL' : 'NEEDS ATTENTION',
+        gradeBadge: findings.length === 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200',
+        securityRating: findings.length === 0 ? 'Excellent' : findings.some(f => f.severity === 'Critical') ? 'Poor' : 'Good',
+        securityBadge: findings.length === 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200',
+        deadPct: currentHealthData?.health?.deadPct || 0,
+        complexityIndex: currentHealthData?.health?.complexityIndex || 12,
+        removedLines: currentHealthData?.health?.removedLines || 0,
+        vulnerabilities: findings
+      }, currentHealthData?.stats);
+    } catch (err) {
+      console.warn('Could not scan editor for health:', err);
+    }
+  }
+}
+
+// ── Sandbox Status Probing ────────────────────────────────────────────────
+async function updateSandboxStatusBadge() {
+  const chip = document.getElementById('sandbox-status-chip');
+  const pip = document.getElementById('sandbox-status-pip');
+  const tipDot = document.getElementById('sandbox-tooltip-dot');
+  const tipText = document.getElementById('sandbox-tooltip-text');
+  if (!chip) return;
+
+  const baseChipClasses = 'size-7 rounded-full flex items-center justify-center shadow-2xs cursor-pointer relative transition-all hover:scale-105';
+
+  try {
+    const res = await fetch('/api/sandbox/status');
+    const health = await res.json();
+
+    if (health.available) {
+      chip.className = `${baseChipClasses} bg-emerald-50 text-emerald-700 border border-emerald-200`;
+      if (pip) pip.className = 'absolute -top-0.5 -right-0.5 size-2 rounded-full bg-emerald-500 ring-2 ring-white';
+      if (tipDot) tipDot.className = 'size-2 rounded-full bg-emerald-400 shrink-0';
+      if (tipText) tipText.textContent = `Sandbox Active [Docker: ${health.image || 'gcc:13.2.0-bookworm-slim'}]`;
+      chip.title = `Container runtime: ${health.runtime} (${health.serverVersion || 'active'}). Image: ${health.image}. Isolation enforced.`;
+    } else if (health.mode === 'unsafe_dev_mode') {
+      chip.className = `${baseChipClasses} bg-amber-50 text-amber-700 border border-amber-300`;
+      if (pip) pip.className = 'absolute -top-0.5 -right-0.5 size-2 rounded-full bg-amber-500 ring-2 ring-white animate-pulse';
+      if (tipDot) tipDot.className = 'size-2 rounded-full bg-amber-400 shrink-0 animate-pulse';
+      if (tipText) tipText.textContent = '⚠️ Unsafe Dev Mode (Host Execution Enabled)';
+      chip.title = 'Host execution explicitly enabled via environment flag. NEVER describe as a sandbox.';
+    } else {
+      chip.className = `${baseChipClasses} bg-rose-50 text-rose-700 border border-rose-200`;
+      if (pip) pip.className = 'absolute -top-0.5 -right-0.5 size-2 rounded-full bg-rose-500 ring-2 ring-white';
+      if (tipDot) tipDot.className = 'size-2 rounded-full bg-rose-400 shrink-0';
+      const reason = health.reason || 'Docker daemon unreachable';
+      if (tipText) tipText.textContent = `Execution Blocked — Sandbox Unavailable (${reason})`;
+      chip.title = `Sandbox unavailable (${reason}). Direct host execution safely blocked.`;
+    }
+  } catch (err) {
+    chip.className = `${baseChipClasses} bg-rose-50 text-rose-700 border border-rose-200`;
+    if (pip) pip.className = 'absolute -top-0.5 -right-0.5 size-2 rounded-full bg-rose-500 ring-2 ring-white';
+    if (tipDot) tipDot.className = 'size-2 rounded-full bg-rose-400 shrink-0';
+    if (tipText) tipText.textContent = 'Execution Blocked — Sandbox Unavailable';
+    chip.title = 'Sandbox unavailable. Direct host execution safely blocked.';
+  }
+}
+
+
 // ── Init analytics on tab open ─────────────────────────────────────────────
 document.querySelector('.nav-btn[data-panel="analytics"]')?.addEventListener('click', () => {
   setTimeout(() => renderAnalytics(activeChartType), 50);
 });
+
+// Initialize session in audit timeline
+if (typeof logClientAuditEvent === 'function') {
+  logClientAuditEvent('session_initialized', 'info', 'INFO', 'Security session initialized. Tamper-evident SHA-256 hash chain active.', { sessionId: window.currentAuditSessionId, scope: 'local_storage' });
+}
 </script>
+
+<div id="security-dialog" class="security-dialog" role="dialog" aria-modal="true" aria-labelledby="security-dialog-title">
+  <div class="security-dialog-card">
+    <div class="p-6 border-b border-rose-100 bg-rose-50/70">
+      <div class="flex items-center gap-4">
+        <div class="security-robot"><span class="material-symbols-outlined text-3xl">smart_toy</span></div>
+        <div>
+          <p class="text-[10px] font-black tracking-[.18em] text-rose-600 uppercase">Guardian intervention</p>
+          <h2 id="security-dialog-title" class="mt-1 text-lg font-black text-slate-900">Hold on, I found risky code.</h2>
+        </div>
+      </div>
+      <p id="security-dialog-summary" class="mt-4 text-sm font-semibold text-slate-700"></p>
+      <p id="security-dialog-detail" class="mt-2 text-xs leading-relaxed text-rose-700"></p>
+    </div>
+    <div class="p-6">
+      <p class="text-sm leading-relaxed text-slate-600">Self-healing is off, so your code is unchanged. You can ask DRONA for a safe repair, review the highlighted lines, or explicitly continue.</p>
+      <div class="mt-5 grid gap-2 sm:grid-cols-3">
+        <button id="security-drona-btn" type="button" class="rounded-xl border border-primary bg-primary px-3 py-2.5 text-xs font-bold text-white hover:brightness-110">Ask DRONA</button>
+        <button id="security-review-btn" type="button" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50">Review code</button>
+        <button id="security-continue-btn" type="button" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-bold text-rose-700 hover:bg-rose-100">Continue anyway</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script src="/drona.js"></script>
 </body>

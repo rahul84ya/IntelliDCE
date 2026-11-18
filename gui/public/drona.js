@@ -25,15 +25,30 @@
 
   function createUi() {
     el.launcher = make('button', 'drona-launcher'); el.launcher.type = 'button';
-    el.dot = make('span', 'drona-dot'); el.launcher.append(el.dot, document.createTextNode('DRONA'));
+    el.launcher.setAttribute('aria-label', 'Open DRONA AI Assistant');
+    el.launcherIcon = make('span', 'material-symbols-outlined drona-launcher-icon', 'smart_toy');
+    el.dot = make('span', 'drona-dot');
+    el.launcher.append(el.launcherIcon, el.dot);
     el.scanAlert = make('div', 'drona-scan-alert'); el.scanAlert.setAttribute('role', 'button'); el.scanAlert.tabIndex = 0;
     el.scanAlertText = make('span', 'drona-scan-alert-text'); el.scanDismiss = make('button', 'drona-scan-dismiss', '×'); el.scanDismiss.type = 'button'; el.scanDismiss.setAttribute('aria-label', 'Dismiss scan finding');
     el.scanAlert.append(el.scanAlertText, el.scanDismiss);
     el.panel = make('aside', 'drona-panel'); el.panel.setAttribute('aria-label', 'DRONA assistant');
-    const header = make('div', 'drona-header'); const copy = make('div', 'drona-header-copy');
-    copy.append(make('div', 'drona-title', 'DRONA')); el.status = make('div', 'drona-status', 'Checking local AI…'); copy.append(el.status);
-    el.clear = make('button', '', 'Clear chat'); el.close = make('button', '', 'Close'); el.clear.type = el.close.type = 'button';
-    header.append(copy, el.clear, el.close); el.messages = make('div', 'drona-messages scr'); el.messages.setAttribute('aria-live', 'polite');
+    const header = make('div', 'drona-header');
+    const avatar = make('div', 'drona-avatar');
+    avatar.append(make('span', 'material-symbols-outlined text-emerald-600', 'smart_toy'));
+    const copy = make('div', 'drona-header-copy');
+    copy.append(make('div', 'drona-title', 'DRONA AI Assistant'));
+    el.status = make('div', 'drona-status', 'Checking local AI…');
+    copy.append(el.status);
+    const actions = make('div', 'drona-header-actions');
+    el.clear = make('button', 'drona-btn-icon', 'Clear');
+    el.close = make('button', 'drona-btn-icon', '✕');
+    el.clear.title = 'Clear session';
+    el.close.title = 'Close assistant';
+    el.clear.type = el.close.type = 'button';
+    actions.append(el.clear, el.close);
+    header.append(avatar, copy, actions);
+    el.messages = make('div', 'drona-messages scr'); el.messages.setAttribute('aria-live', 'polite');
     el.chips = make('div', 'drona-chips'); ['Explain the selected removal', 'Is my code secure?', 'How can I fix this?'].forEach(text => { const chip = make('button', 'drona-chip', text); chip.type = 'button'; chip.addEventListener('click', () => send(text)); el.chips.append(chip); });
     const composer = make('div', 'drona-composer'); el.input = make('textarea', 'drona-textarea'); el.input.rows = 2; el.input.maxLength = MAX_MESSAGE_LENGTH; el.input.placeholder = 'Ask DRONA about this analysis…';
     const row = make('div', 'drona-composer-row'); el.counter = make('span', 'drona-counter', `0/${MAX_MESSAGE_LENGTH}`); el.send = make('button', 'drona-send', 'Send'); el.send.type = 'button'; el.send.disabled = true; row.append(el.counter, el.send); composer.append(el.input, row); el.panel.append(header, el.messages, el.chips, composer);
@@ -53,6 +68,7 @@
   function severityRank(severity) { return ({ Critical: 4, High: 3, Medium: 2, Low: 1 })[severity] || 0; }
   function hideScanAlert() { visibleFinding = null; el.scanAlert.classList.remove('visible'); }
   function showScanFindings(findings) {
+    document.dispatchEvent(new CustomEvent('idce:securityScan', { detail: { findings: findings || [] } }));
     const available = (findings || []).filter(finding => !dismissedFindings.has(findingKey(finding))).sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
     if (!available.length) return hideScanAlert();
     visibleFinding = available[0];
@@ -70,7 +86,7 @@
   function queueEditorScan(code) {
     if (scanTimer) window.clearTimeout(scanTimer);
     if (scanController) scanController.abort();
-    if (!code.trim()) { lastScannedCode = code; hideScanAlert(); return; }
+    if (!code.trim()) { lastScannedCode = code; document.dispatchEvent(new CustomEvent('idce:securityScan', { detail: { findings: [] } })); hideScanAlert(); return; }
     if (code === lastScannedCode) return;
     scanTimer = window.setTimeout(() => scanEditorCode(code), 600);
   }
@@ -90,18 +106,34 @@
   }
   function attachEditorScan() {
     const editor = document.getElementById('ssa-editor');
-    if (editor) editor.addEventListener('input', () => queueEditorScan(editor.value));
+    if (editor) {
+      editor.addEventListener('input', () => queueEditorScan(editor.value));
+      queueEditorScan(editor.value);
+    }
   }
 
   async function pollHealth() {
     try { const response = await fetch('/api/drona/health'); health = response.ok ? await response.json() : { online:false, modelInstalled:false }; } catch { health = { online:false, modelInstalled:false }; }
-    const ready = Boolean(health.online && health.modelInstalled); el.dot.classList.toggle('online', ready); el.status.textContent = ready ? `Ready · ${health.model || 'local model'}` : 'Local AI unavailable';
+    const ready = Boolean(health.online && health.modelInstalled);
+    el.dot.classList.toggle('online', ready);
+    el.launcher.classList.toggle('online', ready);
+    el.status.textContent = ready ? `Ready · ${health.model || 'local model'}` : 'Local AI unavailable';
   }
 
   function selectedStatementId() { const selected = document.getElementById('explainer-stmt-select'); return selected && selected.value ? selected.value : undefined; }
   function addUser(text) { const item = make('article', 'drona-message user'); item.append(make('div', 'drona-bubble', text), make('time', 'drona-time', clock())); el.messages.append(item); scrollToLatest(); }
   function addThinking() { const item = make('article', 'drona-message assistant'); item.id = 'drona-thinking'; const bubble = make('div', 'drona-bubble'); const thinking = make('span', 'drona-thinking', 'DRONA is thinking'); thinking.append(make('i'), make('i'), make('i')); bubble.append(thinking); item.append(bubble); el.messages.append(item); scrollToLatest(); return item; }
-  function tags(container, values, className) { if (!Array.isArray(values) || !values.length) return; const wrap = make('div', className); values.forEach(value => wrap.append(make('span', 'drona-tag', typeof value === 'string' ? value : value.tool || 'read-only tool'))); container.append(wrap); }
+  function tags(container, values, className) {
+    if (!Array.isArray(values) || !values.length) return;
+    const filtered = values.filter(v => {
+      const tool = typeof v === 'string' ? v : v.tool;
+      return tool && tool !== 'explain_statement';
+    });
+    if (!filtered.length) return;
+    const wrap = make('div', className);
+    filtered.forEach(value => wrap.append(make('span', 'drona-tag', typeof value === 'string' ? value : value.tool || 'read-only tool')));
+    container.append(wrap);
+  }
   function addAssistant(reply, data = {}) {
     const item = make('article', `drona-message assistant${data.blocked ? ' blocked' : data.withheld ? ' review' : data.error ? ' error' : ''}`); const bubble = make('div', 'drona-bubble');
     if (data.blocked) { bubble.append(make('div', 'drona-alert-title', `🛡 Blocked by security guard · ${data.risk || 'high'} risk`)); tags(bubble, (data.findings || []).map(f => f.rule || f), 'drona-rules'); }
@@ -117,12 +149,14 @@
   async function send(preset) {
     const message = (preset == null ? el.input.value : preset).trim(); if (!message || waiting) return; lastMessage = message; addUser(message); el.input.value = ''; waiting = true; updateComposer(); const thinking = addThinking();
     try {
-      const payload = { sessionId, message, runId: window.currentRunId || undefined, selectedStatementId: selectedStatementId() };
+      const activeSession = window.currentAuditSessionId || sessionId;
+      const payload = { sessionId: activeSession, message, runId: window.currentRunId || undefined, selectedStatementId: selectedStatementId(), code: (document.getElementById('ssa-editor')?.value || '').slice(0, 20000) };
       const response = await fetch('/api/drona/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload) });
       const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || 'DRONA could not process that request.'); thinking.remove(); addAssistant(data.reply || 'DRONA returned an empty response.', { ...data, error: Boolean(data.error) });
     } catch (error) { thinking.remove(); addAssistant(error.message || 'Local AI is unavailable.', { error:true }); }
     finally { waiting = false; updateComposer(); }
   }
 
+  window.DRONA = { ask: (message) => { setOpen(true); send(message); } };
   document.addEventListener('DOMContentLoaded', () => { verifySafeTextRendering(); createUi(); attachEditorScan(); pollHealth(); window.setInterval(pollHealth, 15000); });
 })();

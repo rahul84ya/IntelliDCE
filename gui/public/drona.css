@@ -1,7 +1,481 @@
-:root { --drona-ink:#0f172a; --drona-muted:#64748b; --drona-line:#e2e8f0; --drona-green:#10b981; }
-.drona-launcher{position:fixed;right:24px;bottom:24px;z-index:80;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;background:var(--drona-ink);color:#fff;padding:13px 16px;font:700 12px/1 Inter,sans-serif;letter-spacing:.08em;box-shadow:0 12px 28px rgba(15,23,42,.24);cursor:pointer}.drona-dot{width:9px;height:9px;border-radius:50%;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.15)}.drona-dot.online{background:var(--drona-green);box-shadow:0 0 0 3px rgba(16,185,129,.15)}
-.drona-panel{position:fixed;right:24px;bottom:82px;z-index:81;width:380px;height:70vh;min-height:420px;display:none;flex-direction:column;background:#fff;border:1px solid var(--drona-line);border-radius:16px;box-shadow:0 24px 60px rgba(15,23,42,.2);overflow:hidden;font-family:Inter,sans-serif}.drona-panel.open{display:flex}.drona-header{display:flex;align-items:center;gap:10px;padding:14px 15px;border-bottom:1px solid var(--drona-line);background:#fff}.drona-title{font-weight:700;font-size:14px;color:var(--drona-ink)}.drona-status{font-size:11px;color:var(--drona-muted);margin-top:2px}.drona-header-copy{flex:1}.drona-header button,.drona-copy,.drona-retry{border:0;background:transparent;color:var(--drona-muted);font:600 11px/1 Inter,sans-serif;cursor:pointer;padding:6px;border-radius:6px}.drona-header button:hover,.drona-copy:hover,.drona-retry:hover{background:#f1f5f9;color:var(--drona-ink)}
-.drona-messages{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:11px;background:#f8fafc}.drona-message{display:flex;flex-direction:column;max-width:88%;gap:4px}.drona-message.user{align-self:flex-end;align-items:flex-end}.drona-message.assistant{align-self:flex-start}.drona-bubble{padding:10px 12px;border:1px solid var(--drona-line);border-radius:13px;background:#fff;color:#334155;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.drona-message.user .drona-bubble{background:var(--drona-ink);border-color:var(--drona-ink);color:#fff;border-bottom-right-radius:4px}.drona-message.assistant .drona-bubble{border-bottom-left-radius:4px}.drona-time,.drona-latency{font-size:10px;color:#94a3b8}.drona-message.blocked .drona-bubble{border-color:#ef4444;background:#fff7f7;color:#991b1b}.drona-message.review .drona-bubble{border-color:#f59e0b;background:#fffbeb;color:#92400e}.drona-message.error .drona-bubble{border-color:#cbd5e1;background:#f8fafc;color:#475569}.drona-alert-title{font-weight:700;margin-bottom:4px}.drona-rules,.drona-actions{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}.drona-tag,.drona-badge{font:600 10px/1.2 'JetBrains Mono',monospace;padding:3px 6px;border-radius:999px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.drona-message.blocked .drona-tag{background:#fee2e2;border-color:#fecaca;color:#991b1b}.drona-code{margin-top:8px;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:9px;font:11px/1.45 'JetBrains Mono',monospace;white-space:pre-wrap;overflow:auto}.drona-code-head{display:flex;justify-content:space-between;align-items:center;margin-top:8px}.drona-rating{font-size:10px;font-weight:700;color:#0f766e;background:#ccfbf1;padding:3px 6px;border-radius:999px}.drona-thinking{color:#64748b;font-size:12px;padding:5px}.drona-thinking i{display:inline-block;width:4px;height:4px;margin-left:3px;border-radius:50%;background:#94a3b8;animation:drona-dot-pulse 1s infinite alternate}.drona-thinking i:nth-child(2){animation-delay:.2s}.drona-thinking i:nth-child(3){animation-delay:.4s}@keyframes drona-dot-pulse{to{opacity:.25;transform:translateY(-2px)}}
-.drona-chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 15px 10px;background:#f8fafc}.drona-chip{border:1px solid #cbd5e1;background:#fff;color:#475569;padding:5px 8px;border-radius:999px;font:600 10px/1.2 Inter,sans-serif;cursor:pointer}.drona-chip:hover{border-color:#0f172a;color:#0f172a}.drona-composer{padding:11px 12px;border-top:1px solid var(--drona-line);background:#fff}.drona-textarea{display:block;width:100%;resize:none;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:9px;padding:8px;color:#0f172a;font:12px/1.4 Inter,sans-serif;outline:none}.drona-textarea:focus{border-color:#0f172a;box-shadow:0 0 0 2px rgba(15,23,42,.08)}.drona-composer-row{display:flex;justify-content:space-between;align-items:center;margin-top:7px}.drona-counter{font-size:10px;color:#94a3b8}.drona-send{border:0;border-radius:7px;background:#0f172a;color:#fff;padding:7px 11px;font:700 11px/1 Inter,sans-serif;cursor:pointer}.drona-send:disabled{opacity:.45;cursor:not-allowed}
-@media(max-width:560px){.drona-launcher{right:16px;bottom:16px}.drona-panel{inset:0;width:auto;height:auto;min-height:0;border-radius:0;border:0}.drona-panel.open{display:flex}}
-.drona-scan-alert{position:fixed;right:24px;bottom:82px;z-index:79;display:none;align-items:center;gap:8px;max-width:330px;padding:9px 8px 9px 11px;border:1px solid #fbbf24;border-radius:10px;background:#fffbeb;color:#92400e;box-shadow:0 8px 20px rgba(15,23,42,.15);font:600 11px/1.35 Inter,sans-serif;cursor:pointer}.drona-scan-alert.visible{display:flex}.drona-scan-alert-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.drona-scan-dismiss{flex:0 0 auto;border:0;background:transparent;color:#92400e;font:700 17px/1 Inter,sans-serif;cursor:pointer;padding:2px 4px;border-radius:4px}.drona-scan-dismiss:hover{background:#fde68a}@media(max-width:560px){.drona-scan-alert{right:16px;bottom:76px;max-width:calc(100vw - 32px)}}
+:root {
+  --drona-ink: #0f172a;
+  --drona-muted: #64748b;
+  --drona-line: #e2e8f0;
+  --drona-green: #10b981;
+  --drona-green-dim: rgba(16, 185, 129, 0.12);
+}
+
+/* Floating Circular Robot Launcher */
+.drona-launcher {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 84;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+}
+.drona-launcher:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 16px 36px -4px rgba(15, 23, 42, 0.4), 0 0 20px rgba(16, 185, 129, 0.35);
+}
+.drona-launcher.online {
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.3), 0 0 0 3px rgba(16, 185, 129, 0.25), 0 0 24px rgba(16, 185, 129, 0.45);
+  animation: drona-glow-pulse 3s infinite;
+}
+@keyframes drona-glow-pulse {
+  0%, 100% { box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.3), 0 0 0 3px rgba(16, 185, 129, 0.25), 0 0 20px rgba(16, 185, 129, 0.35); }
+  50% { box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.3), 0 0 0 5px rgba(16, 185, 129, 0.38), 0 0 30px rgba(16, 185, 129, 0.6); }
+}
+.drona-launcher-icon {
+  font-size: 28px !important;
+  color: #ffffff;
+  transition: transform 0.2s ease;
+}
+.drona-launcher:hover .drona-launcher-icon {
+  transform: scale(1.1) rotate(-6deg);
+}
+.drona-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #0f172a;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.drona-dot.online {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+/* Chat Panel */
+.drona-panel {
+  position: fixed;
+  right: 28px;
+  bottom: 96px;
+  z-index: 85;
+  width: 410px;
+  max-width: calc(100vw - 36px);
+  height: min(620px, calc(100vh - 120px));
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  transform: translateY(16px) scale(0.96);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+.drona-panel.open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Header */
+.drona-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--drona-line);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.drona-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(6, 182, 212, 0.12) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+  flex-shrink: 0;
+}
+.drona-header-copy {
+  flex: 1;
+  min-width: 0;
+}
+.drona-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--drona-ink);
+  letter-spacing: -0.01em;
+}
+.drona-status {
+  font-size: 11px;
+  color: var(--drona-muted);
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.drona-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.drona-btn-icon {
+  border: 0;
+  background: transparent;
+  color: var(--drona-muted);
+  font: 600 11px/1 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 6px 9px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+.drona-btn-icon:hover {
+  background: #f1f5f9;
+  color: var(--drona-ink);
+}
+
+/* Message Stream */
+.drona-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+.drona-message {
+  display: flex;
+  flex-direction: column;
+  max-width: 88%;
+  gap: 4px;
+}
+.drona-message.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.drona-message.assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+.drona-bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.drona-message.user .drona-bubble {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid #0f172a;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+.drona-message.assistant .drona-bubble {
+  background: #ffffff;
+  border: 1px solid var(--drona-line);
+  color: #1e293b;
+  border-bottom-left-radius: 4px;
+}
+.drona-time,
+.drona-latency {
+  font-size: 10px;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0 4px;
+}
+
+/* Blocked / Warning Messages */
+.drona-message.blocked .drona-bubble {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+.drona-message.review .drona-bubble {
+  border-color: #fed7aa;
+  background: #fffbeb;
+  color: #92400e;
+}
+.drona-message.error .drona-bubble {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+}
+.drona-alert-title {
+  font-weight: 700;
+  font-size: 11.5px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.drona-rules,
+.drona-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+.drona-tag,
+.drona-badge {
+  font: 600 10px/1.2 'JetBrains Mono', monospace;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.drona-message.blocked .drona-tag {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+/* Suggested Code Block */
+.drona-code {
+  margin-top: 8px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: 11px/1.5 'JetBrains Mono', monospace;
+  white-space: pre-wrap;
+  overflow: auto;
+  border: 1px solid #1e293b;
+}
+.drona-code-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.drona-rating {
+  font-size: 10px;
+  font-weight: 700;
+  color: #047857;
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.drona-copy,
+.drona-retry {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font: 600 10.5px/1 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 5px 9px;
+  border-radius: 6px;
+  margin-top: 6px;
+  transition: all 0.15s ease;
+}
+.drona-copy:hover,
+.drona-retry:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* Thinking Indicator */
+.drona-thinking {
+  color: #64748b;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-weight: 500;
+}
+.drona-thinking i {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: drona-dot-pulse 1s infinite alternate;
+}
+.drona-thinking i:nth-child(2) { animation-delay: .2s; }
+.drona-thinking i:nth-child(3) { animation-delay: .4s; }
+@keyframes drona-dot-pulse {
+  to { opacity: .2; transform: translateY(-3px); }
+}
+
+/* Chips */
+.drona-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 0 16px 10px;
+  background: #f8fafc;
+}
+.drona-chip {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font: 600 10.5px/1.2 'Inter', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+}
+.drona-chip:hover {
+  border-color: #10b981;
+  color: #065f46;
+  background: #ecfdf5;
+  transform: translateY(-1px);
+}
+
+/* Composer Area */
+.drona-composer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--drona-line);
+  background: #ffffff;
+}
+.drona-textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  box-sizing: border-box;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #0f172a;
+  font: 12.5px/1.45 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.drona-textarea:focus {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+.drona-composer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+.drona-counter {
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-family: 'JetBrains Mono', monospace;
+}
+.drona-send {
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  padding: 7px 12px;
+  font: 700 11.5px/1 'Inter', sans-serif;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.drona-send:hover:not(:disabled) {
+  background: #020617;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.2);
+}
+.drona-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Scan Alert Banner */
+.drona-scan-alert {
+  position: fixed;
+  right: 28px;
+  bottom: 96px;
+  z-index: 82;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  max-width: 340px;
+  padding: 10px 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fffbeb;
+  color: #92400e;
+  box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.18);
+  font: 600 11.5px/1.4 'Inter', sans-serif;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.drona-scan-alert.visible {
+  display: flex;
+}
+.drona-scan-alert:hover {
+  transform: translateY(-2px);
+}
+.drona-scan-alert-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.drona-scan-dismiss {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #92400e;
+  font: 700 18px/1 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+.drona-scan-dismiss:hover {
+  background: #fde68a;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 560px) {
+  .drona-launcher {
+    right: 18px;
+    bottom: 18px;
+    width: 50px;
+    height: 50px;
+  }
+  .drona-panel {
+    inset: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    min-height: 100vh;
+    border-radius: 0;
+    border: 0;
+  }
+  .drona-panel.open {
+    transform: none;
+  }
+  .drona-scan-alert {
+    right: 18px;
+    bottom: 78px;
+    max-width: calc(100vw - 36px);
+  }
+}

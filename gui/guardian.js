@@ -14,6 +14,13 @@
 const fs   = require('fs');
 const path = require('path');
 
+let audit = null;
+try {
+  audit = require('./audit');
+} catch (e) {
+  // audit unavailable
+}
+
 // ── Block threshold: a single named constant ────────────────────────────
 const BLOCK_THRESHOLD = 60;
 
@@ -85,36 +92,43 @@ const RULES = [
   {
     rule: 'instruction_override_ignore',
     category: 'instruction_override',
-    weight: 40,
+    weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(security|policy|rules?|instructions?|guidelines?|system prompt|restrictions?|safeguards?|guard|guardrails?)\b/,
+    regex: /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(security|policy|policies|rules?|instructions?|guidelines?|system prompt|restrictions?|safeguards?|guard|guardrails?)\b/i,
   },
   {
     rule: 'instruction_override_new_role',
     category: 'instruction_override',
     weight: 35,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(you are now|act as|pretend to be|roleplay as|switch to|new role|new persona)\b/,
+    regex: /\b(you are now|act as|pretend to be|roleplay as|switch to|new role|new persona)\b/i,
+  },
+  {
+    rule: 'instruction_override_jailbreak',
+    category: 'role_hijack',
+    weight: 60,
+    contexts: ['user_prompt', 'code_comment', 'agent_output'],
+    regex: /\b(you are now|act as|pretend to be|roleplay as|switch to)\b.{0,30}\b(unrestricted|dan|jailbreak|evil|no safety|no rules?|no limits?|no restrictions?)\b/i,
   },
 
   // ── validation_bypass ──
   {
     rule: 'validation_bypass_disable',
     category: 'validation_bypass',
-    weight: 35,
+    weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(disable|skip|turn off|remove|circumvent)\b.{0,20}\b(validation|check|filter|scan|guard|security|verification)\b/,
+    regex: /\b(disable|skip|turn off|remove|circumvent|bypass)\b.{0,25}\b(validation|check|checks|filter|filters|scan|scans|guard|guards|security|verification|policy|policies)\b/i,
     // Must NOT match "disable this warning in my IDE"
-    exclude: /\b(warning|lint|compiler warning|ide|editor|eslint|tslint)\b/,
+    exclude: /\b(warning|lint|compiler warning|ide|editor|eslint|tslint)\b/i,
   },
 
   // ── verdict_manipulation ──
   {
     rule: 'verdict_manipulation_mark_safe',
     category: 'verdict_manipulation',
-    weight: 40,
+    weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(mark|flag|label|classify|report|set)\b.{0,20}\b(as\s+)?(safe|secure|clean|approved|harmless|benign|not\s+vulnerab)\b/,
+    regex: /\b(mark|flag|label|classify|report|set|change)\b.{0,25}\b(as\s+)?(safe|secure|clean|approved|harmless|benign|not\s+vulnerab|excellent|good|passed|healthy|low\s+risk)\b/i,
   },
 
   // ── role_hijack ──
@@ -140,6 +154,13 @@ const RULES = [
     weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
     regex: /\b(print|dump|list|show|extract)\b.{0,15}\b(all\s+)?(environment variables?|env\s*vars?|process\.env)\b/,
+  },
+  {
+    rule: 'data_exfiltration_personal_files',
+    category: 'data_exfiltration',
+    weight: 60,
+    contexts: ['user_prompt', 'code_comment', 'agent_output'],
+    regex: /\b(read|show|dump|leak|exfiltrate|send|extract|include)\b.{0,30}\b(personal (?:files?|data)|private (?:files?|data)|local files?|user'?s? (?:personal )?files?|\/etc\/(?:passwd|shadow)|credentials?|ssh keys?)\b/i,
   },
 
   // ── indirect_injection (code_comment context ONLY) ──
@@ -179,7 +200,7 @@ const COMBO_CATEGORIES = ['instruction_override', 'validation_bypass', 'verdict_
  * @param {string} context — "user_prompt" | "code_comment" | "agent_output"
  * @returns {{verdict:"allow"|"block", risk:"low"|"medium"|"high", score:number, findings:Array}}
  */
-function guard(text, context = 'user_prompt') {
+function guard(text, context = 'user_prompt', options = {}) {
   if (!text || typeof text !== 'string') {
     return { verdict: 'allow', risk: 'low', score: 0, findings: [] };
   }
@@ -215,9 +236,56 @@ function guard(text, context = 'user_prompt') {
   const risk = score >= BLOCK_THRESHOLD ? 'high' : score >= 30 ? 'medium' : 'low';
   const verdict = score >= BLOCK_THRESHOLD ? 'block' : 'allow';
 
-  // Log blocks and medium-risk allows
-  if (verdict === 'block' || score >= 30) {
+  // Log blocks and medium-risk allows (suppressed in benchmark simulation mode)
+  if (!options.skipLog && !options.simulate && (verdict === 'block' || score >= 30)) {
     _log({ context, risk, score, rules: findings.map(f => f.rule), text, verdict });
+  }
+
+  // Audit timeline recording (fault-isolated, non-blocking)
+  if (audit && !options.skipAudit && !options.simulate) {
+    try {
+      const sid = options.sessionId || 'default';
+      if (norm !== text.trim().toLowerCase()) {
+        audit.recordEvent({
+          sessionId: sid,
+          eventType: 'normalization_performed',
+          severity: 'info',
+          decision: 'INFO',
+          shortExplanation: `Input normalized (length ${text.length} -> ${norm.length})`,
+          safeMetadata: { context, originalLength: text.length, normalizedLength: norm.length },
+        });
+      }
+      if (findings.length > 0) {
+        audit.recordEvent({
+          sessionId: sid,
+          eventType: 'threat_detected',
+          severity: risk === 'high' ? 'high' : 'medium',
+          decision: verdict.toUpperCase(),
+          shortExplanation: `Detected ${findings.length} threat pattern(s): ${[...hitCategories].join(', ')}`,
+          safeMetadata: { context, score, risk, categories: [...hitCategories], ruleCount: findings.length },
+          stoppedBeforeExecution: verdict === 'block',
+        });
+      }
+      audit.recordEvent({
+        sessionId: sid,
+        eventType: 'risk_score_calculated',
+        severity: risk === 'high' ? 'high' : risk === 'medium' ? 'medium' : 'low',
+        decision: verdict.toUpperCase(),
+        shortExplanation: `Guardian evaluated risk score: ${score}/100 (${risk} risk)`,
+        safeMetadata: { context, score, risk, threshold: BLOCK_THRESHOLD },
+      });
+      audit.recordEvent({
+        sessionId: sid,
+        eventType: 'policy_decision',
+        severity: verdict === 'block' ? 'high' : 'low',
+        decision: verdict.toUpperCase(),
+        shortExplanation: verdict === 'block' ? 'Guardian policy enforced: BLOCK' : 'Guardian policy enforced: ALLOW',
+        safeMetadata: { context, verdict, risk, score },
+        stoppedBeforeExecution: verdict === 'block',
+      });
+    } catch (auditErr) {
+      console.error('[Guardian] Safe audit recording error:', auditErr.message);
+    }
   }
 
   return { verdict, risk, score, findings };

@@ -1,0 +1,20 @@
+# Pinned IntelliDCE Sandbox Container Image
+# Provides isolated C++ compilation and execution for untrusted code.
+# Base: Debian Bookworm Slim with GCC 12/13 pinned
+FROM gcc:13.2.0-bookworm-slim
+
+# Create dedicated unprivileged sandbox user and group (UID/GID 10001)
+RUN groupadd -g 10001 sandbox && \
+    useradd -u 10001 -g sandbox -m -s /bin/sh sandbox
+
+# Prepare isolated per-run workspace
+WORKDIR /sandbox
+RUN chown -R sandbox:sandbox /sandbox && chmod 700 /sandbox
+
+# Drop root privileges by default
+USER sandbox:sandbox
+
+# Set default entrypoint
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["echo 'IntelliDCE Isolated Sandbox Ready'"]
+
