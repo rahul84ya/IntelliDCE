@@ -590,9 +590,60 @@ function computeHealthAndVulnerabilities({ origSsa, optSsa, stats, mlPreds, orig
   const origLines = (origSsa || '').split('\n').filter(l => l.trim().length > 0).length;
   const optLines = (optSsa || '').split('\n').filter(l => l.trim().length > 0).length;
   const liveStmts = (stats && typeof stats.liveStmts === 'number') ? stats.liveStmts : 0;
-  const removedLines = (mlPreds && Array.isArray(mlPreds.dead_items)) ? mlPreds.dead_items.length : 0;
-  const totalStmts = liveStmts + removedLines;
-  const deadPct = totalStmts > 0 ? parseFloat(((removedLines / totalStmts) * 100).toFixed(1)) : 0;
+  
+  const deadItems = (mlPreds && Array.isArray(mlPreds.dead_items)) ? mlPreds.dead_items : [];
+  const removedCount = deadItems.length;
+
+  // Map dead items to actual source line numbers in originalSource
+  const removedLineNumbers = [];
+  if (originalSource && typeof originalSource === 'string' && deadItems.length > 0) {
+    const srcLines = originalSource.split('\n');
+    for (const item of deadItems) {
+      const text = item.text || '';
+      let foundLine = null;
+      for (let i = 0; i < srcLines.length; i++) {
+        const cleanSrc = srcLines[i].trim();
+        if (cleanSrc && cleanSrc === text.trim()) {
+          foundLine = i + 1;
+          break;
+        }
+      }
+      if (!foundLine) {
+        const ssaAssign = text.match(/^([a-zA-Z_]\w*)_\d+\s*=\s*(.+?);?$/);
+        if (ssaAssign) {
+          const varName = ssaAssign[1];
+          const valExpr = ssaAssign[2].trim();
+          for (let i = 0; i < srcLines.length; i++) {
+            const cleanSrc = srcLines[i].trim();
+            if (cleanSrc.includes(varName) && cleanSrc.includes(valExpr)) {
+              foundLine = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      if (!foundLine) {
+        const baseIdMatch = text.match(/^([a-zA-Z_]\w*)/);
+        if (baseIdMatch) {
+          const baseName = baseIdMatch[1].replace(/_\d+$/, '');
+          for (let i = 0; i < srcLines.length; i++) {
+            const cleanSrc = srcLines[i].trim();
+            if (new RegExp(`\\b${baseName}\\b`).test(cleanSrc) && (cleanSrc.includes('=') || cleanSrc.includes('++') || cleanSrc.includes('--'))) {
+              foundLine = i + 1;
+              break;
+            }
+          }
+        }
+      }
+      if (foundLine && !removedLineNumbers.includes(foundLine)) {
+        removedLineNumbers.push(foundLine);
+      }
+    }
+  }
+
+  const removedLines = removedLineNumbers;
+  const totalStmts = liveStmts + removedCount;
+  const deadPct = totalStmts > 0 ? parseFloat(((removedCount / totalStmts) * 100).toFixed(1)) : 0;
   
   // Complexity calculation: ratio of control-flow branch statements to basic blocks
   const branchMatches = (origSsa || '').match(/\b(if|goto|switch|<bb\s+\d+>)\b/g) || [];
@@ -946,7 +997,25 @@ app.post('/api/analyze-text', express.json(), async (req, res) => {
   });
 
   // 2. Guardian evaluation on source
-  guardian.guard(code, 'source_code', { sessionId });
+  const guardCheck = guardian.guard(code, 'source_code', { sessionId });
+  if (guardCheck && guardCheck.verdict === 'block') {
+    audit.recordEvent({
+      sessionId,
+      eventType: 'compilation_blocked',
+      severity: 'high',
+      decision: 'PREVENTED',
+      shortExplanation: 'Source code compilation and execution blocked by Guardian policy',
+      safeMetadata: { risk: guardCheck.risk, score: guardCheck.score, categories: guardCheck.findings?.map(f => f.category) },
+      stoppedBeforeExecution: true,
+    });
+    return res.status(403).json({
+      error: 'Execution blocked by Guardian security policy: Harmful instruction patterns detected.',
+      blocked: true,
+      findings: guardCheck.findings,
+      score: guardCheck.score,
+      risk: guardCheck.risk,
+    });
+  }
 
   const runId  = crypto.randomBytes(6).toString('hex');
   const outDir = `gui_run_${runId}`;
@@ -1115,6 +1184,7 @@ app.post('/api/verify', express.json(), async (req, res) => {
       numTests: numTests || 5,
       timeoutMs: timeoutMs || 2000,
       instructionsRemoved,
+      sessionId,
     });
 
     audit.recordEvent({
@@ -1170,7 +1240,23 @@ app.post('/api/analyze-sample', express.json(), async (req, res) => {
 
   // 2. Guardian check on sample comments/code
   if (origSource) {
-    guardian.guard(origSource, 'source_code', { sessionId });
+    const gCheck = guardian.guard(origSource, 'source_code', { sessionId });
+    if (gCheck && gCheck.verdict === 'block') {
+      audit.recordEvent({
+        sessionId,
+        eventType: 'compilation_blocked',
+        severity: 'high',
+        decision: 'PREVENTED',
+        shortExplanation: `Sample ${name} blocked by Guardian security policy`,
+        safeMetadata: { sampleName: name, risk: gCheck.risk, score: gCheck.score },
+        stoppedBeforeExecution: true,
+      });
+      return res.status(403).json({
+        error: `Sample ${name} blocked by Guardian security policy`,
+        blocked: true,
+        findings: gCheck.findings,
+      });
+    }
   }
 
   const runId  = crypto.randomBytes(6).toString('hex');

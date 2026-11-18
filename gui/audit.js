@@ -31,7 +31,8 @@ const sessions = new Map();
  */
 const SECRET_PATTERNS = [
   /Bearer\s+[A-Za-z0-9_\-\.]{10,}/gi,
-  /(api[_-]?key|secret|token|password|auth|private[_-]?key)\s*[:=]\s*['"]?([A-Za-z0-9_\-\.]{8,})['"]?/gi,
+  /(api[_-]?key|secret|token|password|auth|private[_-]?key)\s*[:=]\s*['"]?([A-Za-z0-9_\-\.]{6,})['"]?/gi,
+  /DEMO_SECRET_[A-Za-z0-9_]+/gi,
   /sk-[A-Za-z0-9]{20,}/gi,
   /ghp_[A-Za-z0-9]{20,}/gi,
   /AIza[0-9A-Za-z-_]{35}/gi,

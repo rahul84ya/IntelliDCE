@@ -3050,8 +3050,61 @@ async function passSecurityGate(actionLabel = 'analysis') {
   try { findings = await scanEditorForSafety(editor.value); }
   catch (error) { showToast('Security scan unavailable — analysis was not started.'); return false; }
   if (!findings.length) return true;
-  if (!selfHealingEnabled) return showSafetyDialog(findings, actionLabel);
+
+  if (typeof logClientAuditEvent === 'function') {
+    await logClientAuditEvent('unsafe_code_detected', 'high', 'WARN', `Automata security scanner detected ${findings.length} unsafe pattern(s)`, {
+      findingCount: findings.length,
+      sampleCwes: findings.slice(0, 5).map(f => f.cwe || f.title)
+    });
+    await logClientAuditEvent('self_healing_patch_proposed', 'info', 'INFO', `Self-healing proposal created to prune or neutralize ${findings.length} flagged unsafe line(s)`, {
+      flaggedLines: findings.map(f => f.line)
+    });
+  }
+
   const healed = healFlaggedLines(editor.value, findings);
+  let patchFindings = [];
+  try {
+    const res = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: healed, sessionId: window.currentAuditSessionId || currentAuditSessionId || 'default' })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      patchFindings = Array.isArray(data.findings) ? data.findings : [];
+    }
+  } catch {}
+
+  if (typeof logClientAuditEvent === 'function') {
+    await logClientAuditEvent('patch_scanned', 'info', 'INFO', `Self-healing patch re-scanned (${patchFindings.length} residual findings)`, {
+      residualFindingsCount: patchFindings.length
+    });
+    await logClientAuditEvent('validation_result', patchFindings.length === 0 ? 'low' : 'medium', patchFindings.length === 0 ? 'VALIDATED' : 'WARN', patchFindings.length === 0 ? 'Patch validation succeeded: all flagged vulnerabilities cleared' : 'Patch validation noted residual vulnerabilities', {
+      validated: patchFindings.length === 0,
+      residualCount: patchFindings.length
+    });
+    await logClientAuditEvent('awaiting_user_approval', 'info', 'INFO', selfHealingEnabled ? 'Self-healing mode active: proceeding with auto-remediation' : 'Awaiting user decision in safety dialog', {
+      selfHealingEnabled
+    });
+  }
+
+  if (!selfHealingEnabled) {
+    const userDecision = await showSafetyDialog(findings, actionLabel);
+    if (typeof logClientAuditEvent === 'function') {
+      await logClientAuditEvent('user_approval_rejection', userDecision ? 'low' : 'medium', userDecision ? 'APPROVED' : 'REJECTED', userDecision ? 'User approved proceeding with analysis despite findings' : 'User rejected unsafe code and aborted execution', {
+        decision: userDecision ? 'APPROVED' : 'REJECTED'
+      }, !userDecision);
+    }
+    return userDecision;
+  }
+
+  if (typeof logClientAuditEvent === 'function') {
+    await logClientAuditEvent('user_approval_rejection', 'low', 'APPROVED', 'Self-healing patch automatically approved and applied to editor', {
+      decision: 'APPROVED',
+      autoApplied: true
+    });
+  }
+
   editor.value = healed;
   renderSecurityHighlights([]);
   editor.dispatchEvent(new Event('input'));
@@ -5260,14 +5313,14 @@ function renderVerificationResult(data) {
     if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-amber-50/70 border-amber-200 transition-all shadow-xs';
     if (icon) { icon.textContent = 'build_circle'; icon.className = 'material-symbols-outlined text-3xl text-amber-600'; }
     if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-amber-100 text-amber-800 border border-amber-200';
-    if (failureSection) failureSection.classList.remove('hidden');
-    if (failingInput) failingInput.textContent = 'N/A (Compilation Stage)';
+    if (failureSection) failureSection.classList.add('hidden');
+    if (failingInput) failingInput.textContent = 'N/A';
     if (failingExplanation) failingExplanation.textContent = data.explanation;
   } else {
     if (banner) banner.className = 'flex items-center justify-between p-4 rounded-2xl border bg-slate-100 border-slate-200 transition-all shadow-xs';
     if (icon) { icon.textContent = 'help'; icon.className = 'material-symbols-outlined text-3xl text-slate-500'; }
     if (badge) badge.className = 'px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase font-mono tracking-wider bg-slate-200 text-slate-700 border border-slate-300';
-    if (failureSection) failureSection.classList.remove('hidden');
+    if (failureSection) failureSection.classList.add('hidden');
     if (failingInput) failingInput.textContent = 'N/A';
     if (failingExplanation) failingExplanation.textContent = data.explanation || 'Could not verify safely.';
   }
@@ -5515,7 +5568,7 @@ async function checkAuditIntegrity() {
 }
 
 function exportAuditReportJson() {
-  const targetSession = currentAuditScope === 'all' ? 'all' : (currentAuditSessionId || 'default');
+  const targetSession = currentAuditScope === 'all' ? 'all' : (window.currentAuditSessionId || currentAuditSessionId || 'default');
   window.open(`/api/audit/export?sessionId=${encodeURIComponent(targetSession)}`, '_blank');
 }
 

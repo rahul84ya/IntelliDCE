@@ -132,9 +132,11 @@ function calculateMetrics(TP, TN, FP, FN, latencies = [], preventedCalls = 0) {
   const medianLatencyMs = calculateMedian(latencies);
 
   return {
+    total: totalCases,
     totalCases,
     totalAttacks,
     totalBenign,
+    passed: TP + TN,
     TP,
     TN,
     FP,

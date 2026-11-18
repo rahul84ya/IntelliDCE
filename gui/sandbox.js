@@ -91,19 +91,40 @@ function checkSandboxHealth(forceRefresh = false) {
         available: false,
         runtime: 'none',
         image: PINNED_IMAGE,
+        imageAvailable: false,
         mode: allowUnsafeDev ? 'unsafe_dev_mode' : 'enforced_blocked',
         reason: probe.error ? probe.error.message : (probe.stderr || 'Docker daemon not running'),
         allowUnsafeDev,
       };
     } else {
-      _cachedHealth = {
-        available: true,
-        runtime: 'docker',
-        image: PINNED_IMAGE,
-        mode: 'enforced_isolated',
-        serverVersion: (probe.stdout || '').trim(),
-        allowUnsafeDev: false,
-      };
+      // Both Docker availability AND the configured hardened sandbox image are required
+      const imgProbe = spawnSync('docker', ['image', 'inspect', PINNED_IMAGE], {
+        encoding: 'utf8',
+        timeout: 2500,
+      });
+
+      if (imgProbe.error || imgProbe.status !== 0) {
+        _cachedHealth = {
+          available: false,
+          runtime: 'docker',
+          image: PINNED_IMAGE,
+          imageAvailable: false,
+          mode: allowUnsafeDev ? 'unsafe_dev_mode' : 'enforced_blocked',
+          serverVersion: (probe.stdout || '').trim(),
+          reason: `Configured sandbox image "${PINNED_IMAGE}" not found locally. Run: docker pull ${PINNED_IMAGE}`,
+          allowUnsafeDev,
+        };
+      } else {
+        _cachedHealth = {
+          available: true,
+          runtime: 'docker',
+          image: PINNED_IMAGE,
+          imageAvailable: true,
+          mode: 'enforced_isolated',
+          serverVersion: (probe.stdout || '').trim(),
+          allowUnsafeDev: false,
+        };
+      }
     }
   } catch (err) {
     _cachedHealth = {

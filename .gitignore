@@ -36,6 +36,7 @@ removed_statements.json
 # Temporary runs & scratch
 0.8/
 test_run/
+test_out/
 scratch/
 
 # OS / Editor files

@@ -271,7 +271,19 @@ function synthesizeOptimizedCode(cppCode, removedLines = []) {
   return lines.map((line, idx) => {
     const lineNum = idx + 1;
     if (pruneSet.has(lineNum)) {
-      return `// [IDCE VERIFIED PRUNED] ${line.trim()}`;
+      const trimmed = line.trim();
+      // Check if this line is a declaration with assignment, e.g. "int overwritten = 100;"
+      const declAssignMatch = line.match(/^(\s*)([a-zA-Z_][a-zA-Z0-9_:<>*&\s]+?\s+)([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([^;]+);(.*)$/);
+      if (declAssignMatch) {
+        const [, indent, typeStr, varName, initVal] = declAssignMatch;
+        // Check if varName is referenced downstream in subsequent lines
+        const remainingCode = lines.slice(idx + 1).join('\n');
+        const varRefRegex = new RegExp(`\\b${varName}\\b`);
+        if (varRefRegex.test(remainingCode)) {
+          return `${indent}${typeStr.trim()} ${varName}; // [IDCE VERIFIED PRUNED DEAD STORE: = ${initVal.trim()}]`;
+        }
+      }
+      return `${line.match(/^\s*/)[0]}// [IDCE VERIFIED PRUNED] ${trimmed}`;
     }
     return line;
   }).join('\n');
@@ -332,7 +344,7 @@ async function verifyOptimization(params = {}, deps = {}) {
       matchingCases: 0,
       failingCase: null,
       minimalFailingInput: null,
-      explanation: 'Sandbox unavailable: execution safely blocked. Docker Desktop is required for isolated verification.',
+      explanation: 'Verification safely blocked — Docker sandbox required',
       seed,
       durationMs: Date.now() - startTime,
       sandboxed: false,
@@ -343,7 +355,129 @@ async function verifyOptimization(params = {}, deps = {}) {
     ? optimizedCode
     : originalCode;
 
-  // Prepare isolated temporary binaries
+  const inputs = generateDeterministicInputs(seed, numTests, testCases);
+  let matchingCases = 0;
+
+  // If centralized Docker sandbox is available and no mock compileFn is injected,
+  // execute both programs inside the Docker sandbox runner (never on host).
+  if (health.available && !deps.compileFn && sandbox) {
+    for (let i = 0; i < inputs.length; i++) {
+      const testInput = inputs[i];
+
+      const sbxOrig = await sandbox.compileAndRunInSandbox({
+        source: originalCode,
+        stdin: testInput,
+        timeoutMs,
+        sessionId: params.sessionId || 'verifier',
+      });
+
+      if (sbxOrig.status === 'COMPILE_ERROR') {
+        return {
+          status: STATUS.ORIGINAL_FAILED,
+          instructionsRemoved,
+          testCasesRun: 0,
+          matchingCases: 0,
+          failingCase: null,
+          minimalFailingInput: null,
+          explanation: `Original program failed to compile cleanly: ${sbxOrig.stderr || 'Compiler error'}.`,
+          seed,
+          durationMs: Date.now() - startTime,
+          sandboxed: true,
+        };
+      }
+
+      const sbxOpt = await sandbox.compileAndRunInSandbox({
+        source: optSource,
+        stdin: testInput,
+        timeoutMs,
+        sessionId: params.sessionId || 'verifier',
+      });
+
+      if (sbxOpt.status === 'COMPILE_ERROR') {
+        return {
+          status: STATUS.OPTIMIZED_FAILED,
+          instructionsRemoved,
+          testCasesRun: 0,
+          matchingCases: 0,
+          failingCase: null,
+          minimalFailingInput: null,
+          explanation: `Optimized program failed to compile cleanly: ${sbxOpt.stderr || 'Compiler error'}.`,
+          seed,
+          durationMs: Date.now() - startTime,
+          sandboxed: true,
+        };
+      }
+
+      const origRes = {
+        stdout: sbxOrig.stdout || '',
+        stderr: sbxOrig.stderr || '',
+        exitCode: sbxOrig.returncode !== null ? sbxOrig.returncode : (sbxOrig.status === 'TIMED_OUT' ? -1 : 0),
+        timedOut: sbxOrig.status === 'TIMED_OUT',
+      };
+
+      const optRes = {
+        stdout: sbxOpt.stdout || '',
+        stderr: sbxOpt.stderr || '',
+        exitCode: sbxOpt.returncode !== null ? sbxOpt.returncode : (sbxOpt.status === 'TIMED_OUT' ? -1 : 0),
+        timedOut: sbxOpt.status === 'TIMED_OUT',
+      };
+
+      if (origRes.timedOut) {
+        return {
+          status: STATUS.TIMED_OUT,
+          instructionsRemoved,
+          testCasesRun: i + 1,
+          matchingCases,
+          failingCase: { index: i + 1, input: testInput },
+          minimalFailingInput: testInput,
+          explanation: `Original program timed out on test input #${i + 1}. Observable behavior cannot be established.`,
+          seed,
+          durationMs: Date.now() - startTime,
+          sandboxed: true,
+        };
+      }
+
+      const comparison = compareObservableBehavior(origRes, optRes, testInput, i);
+      if (!comparison.matches) {
+        const isTimeout = comparison.category === 'TIMEOUT';
+        return {
+          status: isTimeout ? STATUS.TIMED_OUT : STATUS.DIVERGENCE_FOUND,
+          instructionsRemoved,
+          testCasesRun: i + 1,
+          matchingCases,
+          failingCase: {
+            index: i + 1,
+            input: testInput,
+            category: comparison.category,
+            details: comparison.details,
+          },
+          minimalFailingInput: testInput,
+          explanation: comparison.explanation,
+          seed,
+          durationMs: Date.now() - startTime,
+          sandboxed: true,
+        };
+      }
+
+      matchingCases++;
+    }
+
+    return {
+      status: STATUS.VERIFIED,
+      instructionsRemoved,
+      testCasesRun: inputs.length,
+      matchingCases,
+      failingCase: null,
+      minimalFailingInput: null,
+      explanation: `Verified identical observable behavior (stdout, exit code, termination) across ${inputs.length} test input(s) with seed ${seed}. DCE preservation confirmed.`,
+      seed,
+      durationMs: Date.now() - startTime,
+      verified: true,
+      sandboxed: true,
+    };
+  }
+
+  // Fallback for mock-injected deps or test runner environments
   const tmpId = crypto.randomBytes(6).toString('hex');
   const origExe = path.join(os.tmpdir(), `idce_orig_${tmpId}.out`);
   const optExe = path.join(os.tmpdir(), `idce_opt_${tmpId}.out`);
@@ -380,10 +514,6 @@ async function verifyOptimization(params = {}, deps = {}) {
         durationMs: Date.now() - startTime,
       };
     }
-
-    // 3. Generate Deterministic Test Inputs
-    const inputs = generateDeterministicInputs(seed, numTests, testCases);
-    let matchingCases = 0;
 
     // 4. Run Execution Loop Across Test Inputs
     for (let i = 0; i < inputs.length; i++) {

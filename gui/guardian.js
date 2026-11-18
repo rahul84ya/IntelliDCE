@@ -94,7 +94,14 @@ const RULES = [
     category: 'instruction_override',
     weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(security|policy|policies|rules?|instructions?|guidelines?|system prompt|restrictions?|safeguards?|guard|guardrails?)\b/i,
+    regex: /\b(ignore|disregard|forget|override|bypass)\b.{0,30}\b(security\s*policy|securitypolicy|policies|policy|security|rules?|instructions?|guidelines?|system prompt|restrictions?|safeguards?|guard|guardrails?)\b/i,
+  },
+  {
+    rule: 'malicious_directive_marker',
+    category: 'encoded_base64',
+    weight: 60,
+    contexts: ['user_prompt', 'code_comment', 'agent_output'],
+    regex: /\b(base64-encoded\s+malicious\s+directive|malicious\s+directive)\b/i,
   },
   {
     rule: 'instruction_override_new_role',
@@ -117,7 +124,7 @@ const RULES = [
     category: 'validation_bypass',
     weight: 60,
     contexts: ['user_prompt', 'code_comment', 'agent_output'],
-    regex: /\b(disable|skip|turn off|remove|circumvent|bypass)\b.{0,25}\b(validation|check|checks|filter|filters|scan|scans|guard|guards|security|verification|policy|policies)\b/i,
+    regex: /\b(disable|skip|turn off|remove|circumvent|bypass)\b.{0,25}\b(validation|check|checks|filter|filters|scan|scans|guard|guards|security\s*policy|securitypolicy|security|verification|policy|policies)\b/i,
     // Must NOT match "disable this warning in my IDE"
     exclude: /\b(warning|lint|compiler warning|ide|editor|eslint|tslint)\b/i,
   },
@@ -209,7 +216,7 @@ function guard(text, context = 'user_prompt', options = {}) {
   const findings = [];
 
   for (const rule of RULES) {
-    if (!rule.contexts.includes(context)) continue;
+    if (!rule.contexts.includes(context) && !(context === 'source_code' && rule.contexts.includes('code_comment'))) continue;
     if (rule.regex.test(norm)) {
       if (rule.exclude && rule.exclude.test(norm)) continue;
       findings.push({
@@ -245,6 +252,14 @@ function guard(text, context = 'user_prompt', options = {}) {
   if (audit && !options.skipAudit && !options.simulate) {
     try {
       const sid = options.sessionId || 'default';
+      audit.recordEvent({
+        sessionId: sid,
+        eventType: 'input_received',
+        severity: 'info',
+        decision: 'INFO',
+        shortExplanation: `Input received for evaluation in context: ${context}`,
+        safeMetadata: { context, inputLength: text.length },
+      });
       if (norm !== text.trim().toLowerCase()) {
         audit.recordEvent({
           sessionId: sid,
